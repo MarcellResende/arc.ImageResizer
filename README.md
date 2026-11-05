@@ -1,30 +1,40 @@
 <p align="center">
-  <img src="src/renderer/assets/logo.png" alt="ARC Image Resizer" width="520">
+  <img src="src/renderer/assets/logo-resizer.png" alt="ARC Image Resizer" width="520">
 </p>
 
 # ARC Image Resizer
 
-Aplicativo para Windows que otimiza imagens em lote com privacidade e controle de qualidade. Todo o processamento acontece localmente: nenhuma imagem é enviada para a internet e os arquivos originais nunca são alterados.
+Aplicativo para Windows que comprime e redimensiona imagens em lote. Todo o processamento é local: nenhuma imagem é enviada para a internet e os arquivos originais nunca são alterados.
 
 ## Como usar
 
-1. Abra o ARC Image Resizer.
-2. Selecione imagens ou uma pasta completa.
-3. Escolha a pasta onde os resultados serão armazenados.
-4. Escolha entre **Sem perda** ou **Redução forte**.
-5. Clique em **Otimizar imagens**.
+Na parte superior do aplicativo, escolha uma das duas ferramentas.
 
-Cada processamento cria automaticamente uma nova subpasta, como `Lote 2026-11-05 14-30-12`. Assim, lotes diferentes não misturam arquivos nem geram nomes com `(2)`.
+### Compressor
 
-Ao terminar, o aplicativo mostra o caminho completo do lote, oferece um botão para abrir a pasta e envia uma notificação local do Windows.
+1. Selecione imagens JPG, JPEG ou PNG — ou uma pasta completa.
+2. Escolha **Sem perda** para preservar todos os pixels ou **Redução forte** para arquivos menores com alta qualidade.
+3. Defina a pasta de saída e clique em **Otimizar imagens**.
 
-## Formatos suportados
+### Resizer
 
-- **Sem perda:** preserva integralmente os pixels de JPG, JPEG e PNG.
-- **Redução forte:** usa alta fidelidade visual para diminuir muito mais o arquivo.
-- Até quatro imagens são processadas simultaneamente para acelerar lotes grandes.
+1. Selecione as imagens ou uma pasta completa.
+2. Escolha como redimensionar:
+   - **Dimensões:** informe largura e altura em pixels.
+   - **Porcentagem:** reduza ou amplie em relação ao tamanho original.
+   - **Redes sociais:** use formatos prontos para Instagram, Facebook, X, TikTok, LinkedIn e YouTube.
+3. Use o controle de proporção para preservar a imagem sem deformação ou liberar largura e altura independentes.
+4. Clique em **Redimensionar**.
 
-Se a versão otimizada não ficar menor, o aplicativo salva uma cópia idêntica do original.
+Cada execução cria uma subpasta exclusiva, como `Lote 2026-11-05 14-30-12` ou `Redimensionado 2026-11-05 14-30-12`. Ao terminar, o app mostra o caminho completo e oferece um botão para abrir a pasta.
+
+## Recursos
+
+- Processamento de até quatro imagens simultaneamente.
+- Presets para posts, capas, perfis, anúncios, stories, reels, shorts e thumbnails.
+- Alta qualidade para JPG e PNG.
+- Interface separada em abas, preservando o lote de cada ferramenta.
+- Funcionamento offline e originais protegidos.
 
 ## Desenvolvimento
 
@@ -35,7 +45,7 @@ npm install
 npm start
 ```
 
-Para executar os testes e gerar o instalador do Windows:
+Para testar e gerar o instalador do Windows:
 
 ```powershell
 npm test
@@ -43,10 +53,6 @@ npm run dist
 ```
 
 O instalador será criado na pasta `release`.
-
-## Privacidade
-
-O aplicativo funciona offline. As imagens permanecem somente no computador do usuário.
 
 ## Licença
 

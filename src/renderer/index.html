@@ -1,162 +1,73 @@
 <!doctype html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:">
-    <title>ARC Image Resizer</title>
-    <link rel="stylesheet" href="styles.css">
-  </head>
-  <body>
-    <div class="ambient ambient-one"></div>
-    <div class="ambient ambient-two"></div>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:">
+  <title>ARC Image Studio</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand"><img id="brand-logo" src="assets/logo-compressor.png" alt="ARC Image Compressor" class="brand-logo"></div>
+      <nav class="tool-switch" aria-label="Escolher ferramenta">
+        <button class="tool-tab active" data-tool="compressor" aria-pressed="true"><span class="tool-tab-icon">↘↙</span><span><strong>Compressor</strong><small>reduzir arquivos</small></span></button>
+        <button class="tool-tab" data-tool="resizer" aria-pressed="false"><span class="tool-tab-icon">↗</span><span><strong>Resizer</strong><small>alterar dimensões</small></span></button>
+      </nav>
+      <div class="topbar-meta"><span class="privacy-pill"><span class="status-dot"></span>100% local</span><span class="version-pill">v2.0</span></div>
+    </header>
 
-    <main class="app-shell">
-      <header class="topbar">
-        <div class="brand">
-          <img src="assets/logo.png" alt="ARC Image Resizer" class="brand-logo">
-        </div>
-        <div class="topbar-meta">
-          <span class="privacy-pill"><span class="status-dot"></span>Processamento local</span>
-          <span class="version-pill">v1.3</span>
-        </div>
-      </header>
-
+    <div id="compressor-view" class="tool-view">
       <section class="hero">
-        <div class="hero-copy">
-          <div class="eyebrow"><span></span> COMPRESSÃO LOCAL EM LOTE</div>
-          <h1>Imagens menores.<br><em>Qualidade intacta.</em></h1>
-          <p>Comprima milhares de arquivos JPG e PNG de uma só vez, sem alterar nenhum pixel e sem enviar nada para a internet.</p>
-          <div class="hero-facts">
-            <span>✓ 100% local</span>
-            <span>✓ Originais protegidos</span>
-            <span>✓ Lotes organizados</span>
-          </div>
-        </div>
-
-        <div class="performance-visual">
-          <div class="performance-glow"></div>
-          <div class="motion-icon motion-compress" aria-hidden="true">
-            <svg viewBox="0 0 64 64">
-              <circle class="motion-ring" cx="32" cy="32" r="27"/>
-              <path class="compress-panel panel-left" d="M14 20h13v24H14z"/>
-              <path class="compress-panel panel-right" d="M37 20h13v24H37z"/>
-              <path class="compress-arrow arrow-left" d="m27 26-6 6 6 6"/>
-              <path class="compress-arrow arrow-right" d="m37 26 6 6-6 6"/>
-            </svg>
-          </div>
-          <div class="performance-copy">
-            <span>PROCESSAMENTO ACELERADO</span>
-            <strong>Até 4 imagens ao mesmo tempo</strong>
-            <p>Mais velocidade nos lotes e uma nova opção de redução forte.</p>
-          </div>
-        </div>
+        <div class="hero-copy"><div class="eyebrow"><span></span> COMPRESSÃO LOCAL EM LOTE</div><h1>Imagens menores.<br><em>Qualidade intacta.</em></h1><p>Comprima milhares de arquivos JPG e PNG de uma só vez, sem alterar nenhum pixel e sem enviar nada para a internet.</p><div class="hero-facts"><span>✓ 100% local</span><span>✓ Originais protegidos</span><span>✓ Lotes organizados</span></div></div>
+        <div class="performance-visual"><div class="performance-glow"></div><div class="motion-icon motion-compress"><svg viewBox="0 0 64 64"><circle class="motion-ring" cx="32" cy="32" r="27"/><path class="compress-panel panel-left" d="M14 20h13v24H14z"/><path class="compress-panel panel-right" d="M37 20h13v24H37z"/><path class="compress-arrow arrow-left" d="m27 26-6 6 6 6"/><path class="compress-arrow arrow-right" d="m37 26 6 6-6 6"/></svg></div><div class="performance-copy"><span>PROCESSAMENTO ACELERADO</span><strong>Até 4 imagens ao mesmo tempo</strong><p>Mais velocidade nos lotes e opção de redução forte.</p></div></div>
       </section>
-
       <section class="upload-card">
-        <div id="drop-zone" class="drop-zone">
-          <div class="motion-icon motion-upload" aria-hidden="true">
-            <svg viewBox="0 0 64 64">
-              <circle class="motion-ring upload-ring" cx="32" cy="32" r="27"/>
-              <path class="upload-tray" d="M19 43v6h26v-6"/>
-              <path class="upload-arrow" d="M32 43V17m0 0-10 10m10-10 10 10"/>
-            </svg>
-          </div>
-          <div class="drop-copy">
-            <h2>Solte suas imagens aqui</h2>
-            <p>ou escolha arquivos e pastas do seu computador</p>
-          </div>
-          <div class="drop-actions">
-            <button id="select-files" class="button primary">Selecionar imagens</button>
-            <button id="select-folder" class="button ghost">Selecionar pasta</button>
-          </div>
-          <div class="format-line"><span>JPG</span><span>JPEG</span><span>PNG</span><small>até 10.000 arquivos</small></div>
-        </div>
-
-        <div id="queue" class="queue hidden">
-          <div class="queue-header">
-            <div>
-              <span class="section-kicker">LOTE ATUAL</span>
-              <h2 id="queue-title">Imagens selecionadas</h2>
-              <p id="queue-subtitle"></p>
-            </div>
-            <div class="queue-actions">
-              <div id="working-animation" class="working-animation hidden" aria-label="Compactando">
-                <svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16"/></svg>
-              </div>
-              <button id="add-more" class="text-button">＋ Adicionar</button>
-              <button id="clear" class="text-button danger">Limpar</button>
-            </div>
-          </div>
-          <div id="progress-wrap" class="progress-wrap hidden">
-            <div class="progress-track"><div id="progress-bar" class="progress-bar"></div></div>
-            <span id="progress-text">Preparando…</span>
-          </div>
-          <div class="list-head"><span>ARQUIVO</span><span>TAMANHO</span><span>STATUS</span></div>
-          <div id="file-list" class="file-list"></div>
-        </div>
-
-        <div id="summary" class="summary hidden">
-          <div class="summary-icon">✓</div>
-          <span class="section-kicker">PROCESSAMENTO CONCLUÍDO</span>
-          <h2>Seu novo lote está pronto</h2>
-          <p id="summary-text"></p>
-          <div class="summary-location">
-            <span>ARQUIVOS SALVOS EM</span>
-            <strong id="summary-path"></strong>
-          </div>
-          <div class="summary-metrics">
-            <div><span>ECONOMIZADO</span><strong id="saved-size">0 B</strong></div>
-            <div><span>REDUÇÃO</span><strong id="saved-percent">0%</strong></div>
-            <div><span>IMAGENS</span><strong id="processed-count">0</strong></div>
-          </div>
-          <div class="summary-actions">
-            <button id="open-output" class="button primary compact">Abrir pasta do lote</button>
-            <button id="new-batch" class="button ghost compact">Novo lote</button>
-          </div>
-        </div>
+        <div id="drop-zone" class="drop-zone"><div class="motion-icon motion-upload"><svg viewBox="0 0 64 64"><circle class="motion-ring upload-ring" cx="32" cy="32" r="27"/><path class="upload-tray" d="M19 43v6h26v-6"/><path class="upload-arrow" d="M32 43V17m0 0-10 10m10-10 10 10"/></svg></div><div class="drop-copy"><h2>Solte suas imagens aqui</h2><p>ou escolha arquivos e pastas do seu computador</p></div><div class="drop-actions"><button id="select-files" class="button primary">Selecionar imagens</button><button id="select-folder" class="button ghost">Selecionar pasta</button></div><div class="format-line"><span>JPG</span><span>JPEG</span><span>PNG</span><small>até 10.000 arquivos</small></div></div>
+        <div id="queue" class="queue hidden"><div class="queue-header"><div><span class="section-kicker">LOTE ATUAL</span><h2 id="queue-title">Imagens selecionadas</h2><p id="queue-subtitle"></p></div><div class="queue-actions"><div id="working-animation" class="working-animation hidden"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16"/></svg></div><button id="add-more" class="text-button">＋ Adicionar</button><button id="clear" class="text-button danger">Limpar</button></div></div><div id="progress-wrap" class="progress-wrap hidden"><div class="progress-track"><div id="progress-bar" class="progress-bar"></div></div><span id="progress-text">Preparando…</span></div><div class="list-head"><span>ARQUIVO</span><span>TAMANHO</span><span>STATUS</span></div><div id="file-list" class="file-list"></div></div>
+        <div id="summary" class="summary hidden"><div class="summary-icon">✓</div><span class="section-kicker">PROCESSAMENTO CONCLUÍDO</span><h2>Seu novo lote está pronto</h2><p id="summary-text"></p><div class="summary-location"><span>ARQUIVOS SALVOS EM</span><strong id="summary-path"></strong></div><div class="summary-metrics"><div><span>ECONOMIZADO</span><strong id="saved-size">0 B</strong></div><div><span>REDUÇÃO</span><strong id="saved-percent">0%</strong></div><div><span>IMAGENS</span><strong id="processed-count">0</strong></div></div><div class="summary-actions"><button id="open-output" class="button primary compact">Abrir pasta do lote</button><button id="new-batch" class="button ghost compact">Novo lote</button></div></div>
       </section>
-
       <section class="settings-bar">
-        <div class="setting setting-destination">
-          <div class="setting-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M3 7.5h6l2 2h10v8.75A1.75 1.75 0 0 1 19.25 20H4.75A1.75 1.75 0 0 1 3 18.25V7.5Z"/><path d="M3 7.5V5.75A1.75 1.75 0 0 1 4.75 4h4.1l2 2H19a2 2 0 0 1 2 2v1.5"/></svg>
-          </div>
-          <div class="setting-copy">
-            <label for="output-path">SALVAR OS LOTES EM</label>
-            <input id="output-path" type="text" readonly aria-label="Pasta de saída">
-          </div>
-          <button id="select-output" class="small-button" title="Escolher pasta" aria-label="Escolher pasta">Alterar</button>
-        </div>
+        <div class="setting setting-destination"><div class="setting-icon"><svg viewBox="0 0 24 24"><path d="M3 7.5h6l2 2h10v8.75A1.75 1.75 0 0 1 19.25 20H4.75A1.75 1.75 0 0 1 3 18.25V7.5Z"/><path d="M3 7.5V5.75A1.75 1.75 0 0 1 4.75 4h4.1l2 2H19a2 2 0 0 1 2 2v1.5"/></svg></div><div class="setting-copy"><label for="output-path">SALVAR OS LOTES EM</label><input id="output-path" type="text" readonly></div><button id="select-output" class="small-button">Alterar</button></div>
+        <div class="setting setting-mode"><div class="setting-copy"><span class="setting-title">INTENSIDADE</span><div class="segmented-control"><label><input type="radio" name="level" value="lossless" checked><span><strong>Sem perda</strong><small>pixels intactos</small></span></label><label><input type="radio" name="level" value="compact"><span><strong>Redução forte</strong><small>alta qualidade</small></span></label></div></div></div>
+        <button id="start" class="button action" disabled><span>Otimizar imagens</span><span class="action-arrow">→</span></button>
+      </section>
+      <section class="feature-grid"><article><div class="feature-icon">✓</div><div><strong>Qualidade sob controle</strong><p>Pixels intactos ou redução visualmente imperceptível.</p></div></article><article><div class="feature-icon">◇</div><div><strong>Privacidade total</strong><p>Seus arquivos nunca saem do computador.</p></div></article><article><div class="feature-icon">▣</div><div><strong>Pastas por lote</strong><p>Cada processamento fica separado e fácil de encontrar.</p></div></article></section>
+    </div>
 
-        <div class="setting setting-mode">
-          <div class="setting-copy">
-            <span class="setting-title">INTENSIDADE</span>
-            <div class="segmented-control">
-              <label>
-                <input type="radio" name="level" value="lossless" checked>
-                <span><strong>Sem perda</strong><small>mais rápida</small></span>
-              </label>
-              <label>
-                <input type="radio" name="level" value="compact">
-                <span><strong>Redução forte</strong><small>alta qualidade</small></span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <button id="start" class="button action" disabled>
-          <span>Otimizar imagens</span>
-          <span class="action-arrow">→</span>
-        </button>
+    <div id="resizer-view" class="tool-view hidden">
+      <section class="hero">
+        <div class="hero-copy"><div class="eyebrow"><span></span> REDIMENSIONAMENTO PROFISSIONAL</div><h1>O tamanho certo.<br><em>Para qualquer mídia.</em></h1><p>Redimensione em pixels, porcentagem ou escolha um formato pronto para redes sociais. Rápido, privado e em lote.</p><div class="hero-facts"><span>✓ Tamanho personalizado</span><span>✓ Presets sociais</span><span>✓ Proporção sob controle</span></div></div>
+        <div class="performance-visual resize-visual"><div class="performance-glow"></div><div class="motion-icon motion-resize"><svg viewBox="0 0 64 64"><circle class="motion-ring" cx="32" cy="32" r="27"/><path class="resize-frame" d="M18 29V18h11M46 35v11H35"/><path class="resize-arrow resize-arrow-a" d="M19 19l12 12M19 19h9M19 19v9"/><path class="resize-arrow resize-arrow-b" d="M45 45 33 33m12 12h-9m9 0v-9"/></svg></div><div class="performance-copy"><span>FORMATOS INTELIGENTES</span><strong>Do pixel ao post perfeito</strong><p>Presets prontos e controle total das dimensões.</p></div></div>
+      </section>
+      <section class="upload-card">
+        <div id="resize-drop-zone" class="drop-zone"><div class="motion-icon motion-upload"><svg viewBox="0 0 64 64"><circle class="motion-ring upload-ring" cx="32" cy="32" r="27"/><path class="upload-tray" d="M19 43v6h26v-6"/><path class="upload-arrow" d="M32 43V17m0 0-10 10m10-10 10 10"/></svg></div><div class="drop-copy"><h2>Escolha as imagens para redimensionar</h2><p>arraste arquivos aqui ou selecione uma pasta completa</p></div><div class="drop-actions"><button id="resize-select-files" class="button primary">Selecionar imagens</button><button id="resize-select-folder" class="button ghost">Selecionar pasta</button></div><div class="format-line"><span>JPG</span><span>JPEG</span><span>PNG</span><small>até 10.000 arquivos</small></div></div>
+        <div id="resize-queue" class="queue hidden"><div class="queue-header"><div><span class="section-kicker">LOTE DO RESIZER</span><h2 id="resize-queue-title">Imagens selecionadas</h2><p id="resize-queue-subtitle"></p></div><div class="queue-actions"><div id="resize-working-animation" class="working-animation hidden"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16"/></svg></div><button id="resize-add-more" class="text-button">＋ Adicionar</button><button id="resize-clear" class="text-button danger">Limpar</button></div></div><div id="resize-progress-wrap" class="progress-wrap hidden"><div class="progress-track"><div id="resize-progress-bar" class="progress-bar"></div></div><span id="resize-progress-text">Preparando…</span></div><div class="list-head"><span>ARQUIVO</span><span>RESULTADO</span><span>STATUS</span></div><div id="resize-file-list" class="file-list"></div></div>
+        <div id="resize-summary" class="summary hidden"><div class="summary-icon">✓</div><span class="section-kicker">REDIMENSIONAMENTO CONCLUÍDO</span><h2>Suas imagens estão prontas</h2><p id="resize-summary-text"></p><div class="summary-location"><span>ARQUIVOS SALVOS EM</span><strong id="resize-summary-path"></strong></div><div class="summary-metrics resize-summary-metrics"><div><span>IMAGENS</span><strong id="resize-processed-count">0</strong></div><div><span>FORMATO</span><strong id="resize-result-size">—</strong></div></div><div class="summary-actions"><button id="resize-open-output" class="button primary compact">Abrir pasta do lote</button><button id="resize-new-batch" class="button ghost compact">Novo lote</button></div></div>
       </section>
 
-      <section class="feature-grid">
-        <article><div class="feature-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></div><div><strong>Qualidade sob controle</strong><p>Escolha entre pixels intactos ou redução visualmente imperceptível.</p></div></article>
-        <article><div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.6 2.8 8.1 7 10 4.2-1.9 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg></div><div><strong>Privacidade total</strong><p>Seus arquivos nunca saem do computador.</p></div></article>
-        <article><div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M4 6h6l2 2h8v11H4V6Z"/><path d="M8 3v6M5 6h6"/></svg></div><div><strong>Pastas por lote</strong><p>Cada processamento fica separado e fácil de encontrar.</p></div></article>
+      <section class="resize-config-card">
+        <div class="config-heading"><div><span class="section-kicker">COMO REDIMENSIONAR</span><h2>Defina o novo tamanho</h2></div><p id="resize-mode-hint">Informe largura e altura em pixels.</p></div>
+        <div class="resize-mode-tabs">
+          <button class="resize-mode-tab active" data-resize-mode="dimensions"><span>▣</span><strong>Dimensões</strong><small>largura × altura</small></button>
+          <button class="resize-mode-tab" data-resize-mode="percentage"><span>%</span><strong>Porcentagem</strong><small>maior ou menor</small></button>
+          <button class="resize-mode-tab" data-resize-mode="template"><span>✦</span><strong>Redes sociais</strong><small>formatos prontos</small></button>
+        </div>
+        <div id="dimensions-panel" class="resize-panel"><div class="dimension-controls"><label class="dimension-input"><span>LARGURA</span><div><input id="resize-width" type="number" min="1" max="20000" value="1080"><small>px</small></div></label><button id="ratio-lock" class="ratio-lock active" type="button" aria-pressed="true"><span class="lock-icon">●</span><strong>Proporção bloqueada</strong><small>sem deformar</small></button><label class="dimension-input"><span>ALTURA</span><div><input id="resize-height" type="number" min="1" max="20000" value="1080"><small>px</small></div></label></div></div>
+        <div id="percentage-panel" class="resize-panel hidden"><div class="percentage-control"><input id="resize-percentage-range" type="range" min="1" max="200" value="50"><label><input id="resize-percentage" type="number" min="1" max="500" value="50"><span>%</span></label></div><div class="quick-percentages"><button data-percentage="25">25%</button><button class="active" data-percentage="50">50%</button><button data-percentage="75">75%</button><button data-percentage="150">150%</button><button data-percentage="200">200%</button></div></div>
+        <div id="template-panel" class="resize-panel hidden"><div class="platform-tabs" id="platform-tabs"><button class="active" data-platform="instagram">Instagram</button><button data-platform="facebook">Facebook</button><button data-platform="x">X</button><button data-platform="tiktok">TikTok</button><button data-platform="linkedin">LinkedIn</button><button data-platform="youtube">YouTube</button></div><div id="preset-grid" class="preset-grid"></div><div class="template-lock-row"><button id="template-ratio-lock" class="ratio-lock active" type="button" aria-pressed="true"><span class="lock-icon">●</span><strong>Preservar proporção</strong><small>preenche e recorta bordas se necessário</small></button></div></div>
       </section>
-    </main>
-    <script src="app.js"></script>
-  </body>
+
+      <section class="settings-bar resize-settings-bar">
+        <div class="setting setting-destination"><div class="setting-icon"><svg viewBox="0 0 24 24"><path d="M3 7.5h6l2 2h10v8.75A1.75 1.75 0 0 1 19.25 20H4.75A1.75 1.75 0 0 1 3 18.25V7.5Z"/><path d="M3 7.5V5.75A1.75 1.75 0 0 1 4.75 4h4.1l2 2H19a2 2 0 0 1 2 2v1.5"/></svg></div><div class="setting-copy"><label for="resize-output-path">SALVAR OS LOTES EM</label><input id="resize-output-path" type="text" readonly></div><button id="resize-select-output" class="small-button">Alterar</button></div>
+        <div class="resize-target-preview"><span>RESULTADO</span><strong id="resize-target-label">1080 × 1080 px</strong><small id="resize-target-detail">proporção preservada</small></div>
+        <button id="resize-start" class="button action" disabled><span>Redimensionar</span><span class="action-arrow">→</span></button>
+      </section>
+      <section class="feature-grid"><article><div class="feature-icon">↗</div><div><strong>Alta qualidade</strong><p>Tratamento próprio para JPG e PNG.</p></div></article><article><div class="feature-icon">▣</div><div><strong>Presets úteis</strong><p>Posts, capas, perfis, anúncios e vídeos verticais.</p></div></article><article><div class="feature-icon">∞</div><div><strong>Lotes independentes</strong><p>Cada execução cria uma nova pasta.</p></div></article></section>
+    </div>
+  </main>
+  <script src="app.js"></script>
+</body>
 </html>

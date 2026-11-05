@@ -72,13 +72,13 @@ function pad(value) {
   return String(value).padStart(2, '0');
 }
 
-function batchLabel(date) {
-  return `Lote ${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
+function batchLabel(date, prefix = 'Lote') {
+  return `${prefix} ${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
 }
 
-export async function createBatchDirectory(outputRoot, now = new Date()) {
+export async function createBatchDirectory(outputRoot, now = new Date(), prefix = 'Lote') {
   await mkdir(outputRoot, { recursive: true });
-  const baseName = batchLabel(now);
+  const baseName = batchLabel(now, prefix);
 
   for (let attempt = 1; attempt <= 999; attempt += 1) {
     const suffix = attempt === 1 ? '' : `-${pad(attempt)}`;

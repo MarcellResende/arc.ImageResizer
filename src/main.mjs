@@ -4,6 +4,7 @@ import { availableParallelism } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createBatchDirectory, isSupportedImage, optimizeImage } from './optimizer.mjs';
+import { imageMetadata, resizeImage } from './resizer.mjs';
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 
@@ -103,6 +104,11 @@ ipcMain.handle('output:show', async (_event, outputPath) => {
   if (typeof outputPath === 'string' && outputPath) await shell.openPath(outputPath);
 });
 
+ipcMain.handle('image:metadata', async (_event, sourcePath) => {
+  if (typeof sourcePath !== 'string' || !sourcePath) throw new Error('Imagem inválida.');
+  return imageMetadata(sourcePath);
+});
+
 ipcMain.handle('optimize:start', async (event, payload) => {
   const { items, outputRoot, level } = payload ?? {};
   if (!Array.isArray(items) || items.length === 0) throw new Error('Nenhuma imagem foi selecionada.');
@@ -160,6 +166,60 @@ ipcMain.handle('optimize:start', async (event, payload) => {
     const notification = new Notification({
       title: 'ARC Image Resizer — concluído',
       body: `${successful} ${successful === 1 ? 'imagem pronta' : 'imagens prontas'} em ${path.basename(batchPath)}.`,
+      icon: path.join(currentDirectory, 'renderer', 'assets', 'app.ico')
+    });
+    notification.on('click', () => shell.openPath(batchPath));
+    notification.show();
+  }
+
+  return { results, batchPath };
+});
+
+ipcMain.handle('resize:start', async (event, payload) => {
+  const { items, outputRoot, options } = payload ?? {};
+  if (!Array.isArray(items) || items.length === 0) throw new Error('Nenhuma imagem foi selecionada.');
+  if (typeof outputRoot !== 'string' || !outputRoot.trim()) throw new Error('Escolha a pasta de saída.');
+  if (items.length > 10000) throw new Error('O limite por lote é de 10.000 imagens.');
+
+  const batchPath = await createBatchDirectory(outputRoot, new Date(), 'Redimensionado');
+  const results = new Array(items.length);
+  const workerCount = Math.min(items.length, Math.max(1, Math.min(4, availableParallelism() - 1)));
+  let nextIndex = 0;
+  let completed = 0;
+
+  async function processNext() {
+    while (nextIndex < items.length) {
+      const itemIndex = nextIndex;
+      nextIndex += 1;
+      const item = items[itemIndex];
+      event.sender.send('resize:started', { id: item.id });
+
+      try {
+        const result = await resizeImage({
+          sourcePath: item.path,
+          relativePath: item.relativePath,
+          outputRoot: batchPath,
+          options
+        });
+        results[itemIndex] = { id: item.id, ok: true, ...result };
+        completed += 1;
+        event.sender.send('resize:progress', { id: item.id, index: completed - 1, total: items.length, ok: true, ...result });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        results[itemIndex] = { id: item.id, ok: false, error: message };
+        completed += 1;
+        event.sender.send('resize:progress', { id: item.id, index: completed - 1, total: items.length, ok: false, error: message });
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: workerCount }, () => processNext()));
+
+  if (Notification.isSupported()) {
+    const successful = results.filter((result) => result?.ok).length;
+    const notification = new Notification({
+      title: 'ARC Image Resizer — concluído',
+      body: `${successful} ${successful === 1 ? 'imagem redimensionada' : 'imagens redimensionadas'} em ${path.basename(batchPath)}.`,
       icon: path.join(currentDirectory, 'renderer', 'assets', 'app.ico')
     });
     notification.on('click', () => shell.openPath(batchPath));
