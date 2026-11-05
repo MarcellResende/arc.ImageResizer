@@ -1,0 +1,53 @@
+{
+  "name": "arc-image-resizer",
+  "version": "1.1.0",
+  "description": "Otimizador de imagens em lote, sem perda de qualidade.",
+  "type": "module",
+  "main": "src/main.mjs",
+  "author": "ARC",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --win nsis"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "45.2.3",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "com.arc.imageresizer",
+    "productName": "ARC Image Resizer",
+    "asar": true,
+    "asarUnpack": [
+      "vendor/**"
+    ],
+    "files": [
+      "src/**/*",
+      "vendor/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ARC Image Resizer"
+    }
+  }
+}

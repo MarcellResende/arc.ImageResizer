@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:">
+    <title>ARC Image Resizer</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <img src="assets/logo.png" alt="ARC Image Resizer" class="brand-logo">
+        </div>
+        <div class="topbar-meta">
+          <span class="privacy-pill"><span class="status-dot"></span>Processamento local</span>
+          <span class="version-pill">v1.1</span>
+        </div>
+      </header>
+
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow"><span></span> OTIMIZAÇÃO SEM PERDA</div>
+          <h1>Imagens menores.<br><em>Qualidade intacta.</em></h1>
+          <p>Comprima milhares de arquivos JPG e PNG de uma só vez, sem alterar nenhum pixel e sem enviar nada para a internet.</p>
+          <div class="hero-facts">
+            <span>✓ 100% local</span>
+            <span>✓ Originais protegidos</span>
+            <span>✓ Lotes organizados</span>
+          </div>
+        </div>
+
+        <div class="compression-visual" aria-hidden="true">
+          <div class="orbit orbit-large"></div>
+          <div class="orbit orbit-small"></div>
+          <div class="format-card format-left">
+            <div class="file-glyph">JPG</div>
+            <strong>ORIGINAL</strong>
+            <small>100%</small>
+          </div>
+          <div class="process-core">
+            <span class="core-arrow">→</span>
+            <small>LOSSLESS</small>
+          </div>
+          <div class="format-card format-right">
+            <div class="file-glyph compact">JPG</div>
+            <strong>OTIMIZADA</strong>
+            <small>menos MB</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="upload-card">
+        <div id="drop-zone" class="drop-zone">
+          <div class="upload-symbol" aria-hidden="true"><span>↑</span></div>
+          <div class="drop-copy">
+            <h2>Solte suas imagens aqui</h2>
+            <p>ou escolha arquivos e pastas do seu computador</p>
+          </div>
+          <div class="drop-actions">
+            <button id="select-files" class="button primary">Selecionar imagens</button>
+            <button id="select-folder" class="button ghost">Selecionar pasta</button>
+          </div>
+          <div class="format-line"><span>JPG</span><span>JPEG</span><span>PNG</span><small>até 10.000 arquivos</small></div>
+        </div>
+
+        <div id="queue" class="queue hidden">
+          <div class="queue-header">
+            <div>
+              <span class="section-kicker">LOTE ATUAL</span>
+              <h2 id="queue-title">Imagens selecionadas</h2>
+              <p id="queue-subtitle"></p>
+            </div>
+            <div class="queue-actions">
+              <button id="add-more" class="text-button">＋ Adicionar</button>
+              <button id="clear" class="text-button danger">Limpar</button>
+            </div>
+          </div>
+          <div id="progress-wrap" class="progress-wrap hidden">
+            <div class="progress-track"><div id="progress-bar" class="progress-bar"></div></div>
+            <span id="progress-text">Preparando…</span>
+          </div>
+          <div class="list-head"><span>ARQUIVO</span><span>TAMANHO</span><span>STATUS</span></div>
+          <div id="file-list" class="file-list"></div>
+        </div>
+
+        <div id="summary" class="summary hidden">
+          <div class="summary-icon">✓</div>
+          <span class="section-kicker">PROCESSAMENTO CONCLUÍDO</span>
+          <h2>Seu novo lote está pronto</h2>
+          <p id="summary-text"></p>
+          <div class="summary-metrics">
+            <div><span>ECONOMIZADO</span><strong id="saved-size">0 B</strong></div>
+            <div><span>REDUÇÃO</span><strong id="saved-percent">0%</strong></div>
+            <div><span>IMAGENS</span><strong id="processed-count">0</strong></div>
+          </div>
+          <div class="summary-actions">
+            <button id="open-output" class="button primary compact">Abrir pasta do lote</button>
+            <button id="new-batch" class="button ghost compact">Novo lote</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-bar">
+        <div class="setting setting-destination">
+          <div class="setting-icon">⌁</div>
+          <div class="setting-copy">
+            <label for="output-path">SALVAR OS LOTES EM</label>
+            <input id="output-path" type="text" readonly aria-label="Pasta de saída">
+          </div>
+          <button id="select-output" class="small-button" title="Escolher pasta" aria-label="Escolher pasta">Alterar</button>
+        </div>
+
+        <div class="setting setting-mode">
+          <div class="setting-copy">
+            <span class="setting-title">INTENSIDADE</span>
+            <div class="segmented-control">
+              <label>
+                <input type="radio" name="level" value="balanced" checked>
+                <span>Equilibrada</span>
+              </label>
+              <label>
+                <input type="radio" name="level" value="maximum">
+                <span>Máxima</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <button id="start" class="button action" disabled>
+          <span>Otimizar imagens</span>
+          <span class="action-arrow">→</span>
+        </button>
+      </section>
+
+      <section class="feature-grid">
+        <article><div class="feature-number">01</div><div><strong>Zero perda visual</strong><p>Nenhum pixel é recodificado.</p></div></article>
+        <article><div class="feature-number">02</div><div><strong>Privacidade total</strong><p>Seus arquivos nunca saem do PC.</p></div></article>
+        <article><div class="feature-number">03</div><div><strong>Pastas por lote</strong><p>Cada execução fica separada.</p></div></article>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
