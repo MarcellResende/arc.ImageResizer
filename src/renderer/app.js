@@ -45,6 +45,9 @@ const presets = {
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 const thumbnailCache = new Map();
+const metadataCache = new Map();
+let resizePreviewTimer = null;
+let resizePreviewRequest = 0;
 
 const thumbnailObserver = new IntersectionObserver((entries) => {
   for (const entry of entries) {
@@ -74,7 +77,8 @@ const resizeElements = {
   height: $('#resize-height'), percentage: $('#resize-percentage'), percentageRange: $('#resize-percentage-range'), ratioLock: $('#ratio-lock'),
   ratioLockInput: $('#ratio-lock-input'), templateRatioLock: $('#template-ratio-lock'), templateRatioLockInput: $('#template-ratio-lock-input'),
   targetLabel: $('#resize-target-label'), targetDetail: $('#resize-target-detail'), modeHint: $('#resize-mode-hint'), presetGrid: $('#preset-grid'),
-  previewImage: $('#resize-preview-image'), previewPlaceholder: $('#resize-preview-placeholder'), previewName: $('#resize-preview-name'), previewMeta: $('#resize-preview-meta')
+  previewImage: $('#resize-preview-image'), previewPlaceholder: $('#resize-preview-placeholder'), previewName: $('#resize-preview-name'), previewMeta: $('#resize-preview-meta'),
+  previewBadge: $('#resize-preview-badge'), previewRefresh: $('#refresh-resize-preview')
 };
 
 async function loadThumbnail(image) {
@@ -233,14 +237,15 @@ function renderResizeQueue() {
 async function loadResizePreview(item, syncDimensions = false) {
   if (!item) return;
   resizeElements.previewName.textContent = item.name;
-  resizeElements.previewMeta.textContent = 'Carregando preview…';
+  resizeElements.previewMeta.textContent = 'Preparando simulação…';
   resizeElements.previewImage.classList.add('hidden');
   resizeElements.previewPlaceholder.classList.remove('hidden');
   try {
-    const [metadata, preview] = await Promise.all([
-      window.arc.imageMetadata(item.path),
-      window.arc.imagePreview(item.path, 900, 620)
-    ]);
+    let metadata = metadataCache.get(item.path);
+    if (!metadata) {
+      metadata = await window.arc.imageMetadata(item.path);
+      metadataCache.set(item.path, metadata);
+    }
     if (resizer.selectedItemId !== item.id) return;
     if (syncDimensions && metadata.width && metadata.height) {
       resizer.sourceRatio = metadata.width / metadata.height;
@@ -249,15 +254,51 @@ async function loadResizePreview(item, syncDimensions = false) {
       resizer.primaryDimension = 'width';
       updateResizeTarget();
     }
-    resizeElements.previewImage.src = preview;
-    resizeElements.previewImage.classList.remove('hidden');
-    resizeElements.previewPlaceholder.classList.add('hidden');
-    resizeElements.previewMeta.textContent = `${metadata.width} × ${metadata.height} px · ${formatBytes(item.size)}`;
+    await refreshResizePreview(item, metadata);
   } catch {
     if (resizer.selectedItemId !== item.id) return;
     resizeElements.previewMeta.textContent = 'Preview indisponível';
     resizeElements.previewPlaceholder.querySelector('span').textContent = 'Não foi possível exibir esta imagem';
   }
+}
+
+async function refreshResizePreview(item = resizer.items.find((candidate) => candidate.id === resizer.selectedItemId), knownMetadata = null) {
+  if (!item) return;
+  const request = ++resizePreviewRequest;
+  clearTimeout(resizePreviewTimer);
+  resizeElements.previewImage.classList.add('updating');
+  resizeElements.previewBadge.textContent = 'ATUALIZANDO';
+  resizeElements.previewRefresh.disabled = true;
+  try {
+    let metadata = knownMetadata || metadataCache.get(item.path);
+    if (!metadata) {
+      metadata = await window.arc.imageMetadata(item.path);
+      metadataCache.set(item.path, metadata);
+    }
+    const preview = await window.arc.resizePreview(item.path, resizeOptions(), 900, 620);
+    if (request !== resizePreviewRequest || resizer.selectedItemId !== item.id) return;
+    resizeElements.previewImage.src = preview.dataUrl;
+    resizeElements.previewImage.classList.remove('hidden');
+    resizeElements.previewPlaceholder.classList.add('hidden');
+    resizeElements.previewMeta.textContent = `${metadata.width} × ${metadata.height} px → ${preview.outputWidth} × ${preview.outputHeight} px`;
+    resizeElements.previewBadge.textContent = 'RESULTADO';
+  } catch (error) {
+    if (request !== resizePreviewRequest) return;
+    resizeElements.previewMeta.textContent = error?.message || 'Preview indisponível';
+    resizeElements.previewBadge.textContent = 'INDISPONÍVEL';
+  } finally {
+    if (request === resizePreviewRequest) {
+      resizeElements.previewImage.classList.remove('updating');
+      resizeElements.previewRefresh.disabled = false;
+    }
+  }
+}
+
+function scheduleResizePreview(delay = 160) {
+  clearTimeout(resizePreviewTimer);
+  if (!resizer.selectedItemId || resizer.running || resizer.completed) return;
+  resizeElements.previewBadge.textContent = 'AGUARDANDO';
+  resizePreviewTimer = setTimeout(() => refreshResizePreview(), delay);
 }
 
 function currentPreset() { return presets[resizer.platform].find((preset) => preset.id === resizer.presetId) || presets[resizer.platform][0]; }
@@ -282,6 +323,7 @@ function setResizeMode(mode) {
   $('#dimensions-panel').classList.toggle('hidden', mode !== 'dimensions'); $('#percentage-panel').classList.toggle('hidden', mode !== 'percentage'); $('#template-panel').classList.toggle('hidden', mode !== 'template');
   resizeElements.modeHint.textContent = mode === 'dimensions' ? 'Informe largura e altura em pixels.' : mode === 'percentage' ? 'Reduza ou amplie mantendo as proporções.' : 'Escolha a rede e o formato desejado.';
   updateResizeTarget();
+  scheduleResizePreview(0);
 }
 
 function setRatioLock(value) {
@@ -295,21 +337,24 @@ function setRatioLock(value) {
     else { strong.textContent = 'Preservar proporção'; small.textContent = value ? 'ativada · preenche sem deformar' : 'desativada · pode distorcer a imagem'; }
   }
   updateResizeTarget();
+  scheduleResizePreview(0);
 }
 
 function syncDimension(changed) {
   resizer.primaryDimension = changed;
-  if (!resizer.lockRatio || !Number.isFinite(resizer.sourceRatio) || resizer.sourceRatio <= 0) return updateResizeTarget();
-  if (changed === 'width') resizeElements.height.value = Math.max(1, Math.round(Number(resizeElements.width.value) / resizer.sourceRatio));
-  else resizeElements.width.value = Math.max(1, Math.round(Number(resizeElements.height.value) * resizer.sourceRatio));
+  if (resizer.lockRatio && Number.isFinite(resizer.sourceRatio) && resizer.sourceRatio > 0) {
+    if (changed === 'width') resizeElements.height.value = Math.max(1, Math.round(Number(resizeElements.width.value) / resizer.sourceRatio));
+    else resizeElements.width.value = Math.max(1, Math.round(Number(resizeElements.height.value) * resizer.sourceRatio));
+  }
   updateResizeTarget();
+  scheduleResizePreview();
 }
 
 function renderPresets() {
   const list = presets[resizer.platform];
   if (!list.some((preset) => preset.id === resizer.presetId)) resizer.presetId = list[0].id;
   resizeElements.presetGrid.innerHTML = list.map((preset) => `<button class="preset-card ${preset.id === resizer.presetId ? 'active' : ''}" data-preset="${preset.id}"><span class="preset-shape">${presetIcon(preset.kind)}</span><span><strong>${preset.name}</strong><small>${preset.width} × ${preset.height} px</small></span></button>`).join('');
-  $$('.preset-card').forEach((button) => button.addEventListener('click', () => { resizer.presetId = button.dataset.preset; renderPresets(); updateResizeTarget(); }));
+  $$('.preset-card').forEach((button) => button.addEventListener('click', () => { resizer.presetId = button.dataset.preset; renderPresets(); updateResizeTarget(); scheduleResizePreview(0); }));
   updateResizeTarget();
 }
 
@@ -364,9 +409,10 @@ function showResizeSummary(results, batchPath) {
 }
 
 function resetResize() {
+  clearTimeout(resizePreviewTimer); resizePreviewRequest += 1;
   Object.assign(resizer, { items: [], batchPath: '', completed: false, selectedItemId: '' }); resizer.results.clear();
   resizeElements.previewImage.removeAttribute('src'); resizeElements.previewImage.classList.add('hidden'); resizeElements.previewPlaceholder.classList.remove('hidden');
-  resizeElements.previewName.textContent = 'Imagem selecionada'; resizeElements.previewMeta.textContent = 'Clique em um arquivo para visualizar';
+  resizeElements.previewName.textContent = 'Imagem selecionada'; resizeElements.previewMeta.textContent = 'Clique em um arquivo para visualizar'; resizeElements.previewBadge.textContent = 'RESULTADO'; resizeElements.previewRefresh.disabled = false;
   resizeElements.progressWrap.classList.add('hidden'); resizeElements.working.classList.add('hidden'); renderResizeQueue();
 }
 
@@ -384,7 +430,7 @@ $$('.tool-tab').forEach((button) => button.addEventListener('click', () => {
   $$('.tool-tab').forEach((tab) => { const active = tab === button; tab.classList.toggle('active', active); tab.setAttribute('aria-pressed', String(active)); });
   $('#compressor-view').classList.toggle('hidden', tool !== 'compressor'); $('#resizer-view').classList.toggle('hidden', tool !== 'resizer');
   $('#brand-logo').src = tool === 'compressor' ? 'assets/logo-compressor.png' : 'assets/logo-resizer.png';
-  $('#brand-logo').alt = tool === 'compressor' ? 'ARC Image Compressor' : 'ARC Image Resizer';
+  $('#brand-logo').alt = tool === 'compressor' ? 'ARC Image Compressor' : 'ARC Image Studio — Resizer';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }));
 
@@ -394,15 +440,16 @@ wireDropZone(compressorElements.dropZone, (items) => { addUniqueItems(compressor
 
 resizeElements.selectFiles.addEventListener('click', () => chooseResizeFiles(false)); resizeElements.addMore.addEventListener('click', () => chooseResizeFiles(false)); resizeElements.selectFolder.addEventListener('click', () => chooseResizeFiles(true));
 resizeElements.selectOutput.addEventListener('click', () => chooseOutput(resizer, resizeElements.outputPath)); resizeElements.start.addEventListener('click', startResize); resizeElements.clear.addEventListener('click', resetResize); resizeElements.newBatch.addEventListener('click', resetResize); resizeElements.openOutput.addEventListener('click', () => window.arc.showOutput(resizer.batchPath || resizer.outputRoot));
+resizeElements.previewRefresh.addEventListener('click', () => refreshResizePreview());
 wireDropZone(resizeElements.dropZone, addResizeItems);
 
 $$('.resize-mode-tab').forEach((button) => button.addEventListener('click', () => setResizeMode(button.dataset.resizeMode)));
 resizeElements.ratioLockInput.addEventListener('change', () => setRatioLock(resizeElements.ratioLockInput.checked)); resizeElements.templateRatioLockInput.addEventListener('change', () => setRatioLock(resizeElements.templateRatioLockInput.checked));
 resizeElements.width.addEventListener('input', () => syncDimension('width')); resizeElements.height.addEventListener('input', () => syncDimension('height'));
-resizeElements.percentage.addEventListener('input', () => { resizeElements.percentageRange.value = Math.min(200, Number(resizeElements.percentage.value) || 1); updateResizeTarget(); });
-resizeElements.percentageRange.addEventListener('input', () => { resizeElements.percentage.value = resizeElements.percentageRange.value; updateResizeTarget(); });
-$$('[data-percentage]').forEach((button) => button.addEventListener('click', () => { resizeElements.percentage.value = button.dataset.percentage; resizeElements.percentageRange.value = Math.min(200, Number(button.dataset.percentage)); $$('[data-percentage]').forEach((item) => item.classList.toggle('active', item === button)); updateResizeTarget(); }));
-$$('[data-platform]').forEach((button) => button.addEventListener('click', () => { resizer.platform = button.dataset.platform; resizer.presetId = presets[resizer.platform][0].id; $$('[data-platform]').forEach((item) => item.classList.toggle('active', item === button)); renderPresets(); }));
+resizeElements.percentage.addEventListener('input', () => { resizeElements.percentageRange.value = Math.min(200, Number(resizeElements.percentage.value) || 1); updateResizeTarget(); scheduleResizePreview(); });
+resizeElements.percentageRange.addEventListener('input', () => { resizeElements.percentage.value = resizeElements.percentageRange.value; updateResizeTarget(); scheduleResizePreview(); });
+$$('[data-percentage]').forEach((button) => button.addEventListener('click', () => { resizeElements.percentage.value = button.dataset.percentage; resizeElements.percentageRange.value = Math.min(200, Number(button.dataset.percentage)); $$('[data-percentage]').forEach((item) => item.classList.toggle('active', item === button)); updateResizeTarget(); scheduleResizePreview(0); }));
+$$('[data-platform]').forEach((button) => button.addEventListener('click', () => { resizer.platform = button.dataset.platform; resizer.presetId = presets[resizer.platform][0].id; $$('[data-platform]').forEach((item) => item.classList.toggle('active', item === button)); renderPresets(); scheduleResizePreview(0); }));
 
 window.arc.onProgress((progress) => { compressor.results.set(progress.id, progress); const done = progress.index + 1; compressorElements.progressBar.style.width = `${done / progress.total * 100}%`; compressorElements.progressText.textContent = `${done} de ${progress.total}`; if (!compressor.completed) renderCompressorQueue(); });
 window.arc.onStarted(({ id }) => { if (!compressor.completed) { compressor.results.set(id, { working: true }); renderCompressorQueue(); } });

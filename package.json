@@ -1,6 +1,6 @@
 {
-  "name": "arc-image-resizer",
-  "version": "2.1.0",
+  "name": "arc-image-studio",
+  "version": "2.2.0",
   "description": "Compressor e redimensionador de imagens em lote, com presets para redes sociais.",
   "type": "module",
   "main": "src/main.mjs",
@@ -22,8 +22,8 @@
     "gifenc": "^1.0.3"
   },
   "build": {
-    "appId": "com.arc.imageresizer",
-    "productName": "ARC Image Resizer",
+    "appId": "com.arc.imagestudio",
+    "productName": "ARC Image Studio",
     "asar": true,
     "asarUnpack": [
       "vendor/**",
@@ -55,7 +55,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "ARC Image Resizer"
+      "shortcutName": "ARC Image Studio"
     }
   }
 }

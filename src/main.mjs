@@ -4,7 +4,7 @@ import { availableParallelism } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createBatchDirectory, isSupportedImage, optimizeImage } from './optimizer.mjs';
-import { imageMetadata, imagePreview, resizeImage } from './resizer.mjs';
+import { imageMetadata, imagePreview, resizeImage, resizePreview } from './resizer.mjs';
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 
@@ -15,7 +15,7 @@ function createWindow() {
     minWidth: 1000,
     minHeight: 720,
     backgroundColor: '#030610',
-    title: 'ARC Image Resizer',
+    title: 'ARC Image Studio',
     icon: path.join(currentDirectory, 'renderer', 'assets', 'app.ico'),
     autoHideMenuBar: true,
     webPreferences: {
@@ -98,7 +98,7 @@ ipcMain.handle('output:select', async () => {
   return result.canceled ? null : result.filePaths[0];
 });
 
-ipcMain.handle('output:default', () => path.join(app.getPath('pictures'), 'ARC Image Resizer'));
+ipcMain.handle('output:default', () => path.join(app.getPath('pictures'), 'ARC Image Studio'));
 
 ipcMain.handle('output:show', async (_event, outputPath) => {
   if (typeof outputPath === 'string' && outputPath) await shell.openPath(outputPath);
@@ -112,6 +112,11 @@ ipcMain.handle('image:metadata', async (_event, sourcePath) => {
 ipcMain.handle('image:preview', async (_event, sourcePath, maxWidth, maxHeight) => {
   if (typeof sourcePath !== 'string' || !sourcePath) throw new Error('Imagem inválida.');
   return imagePreview(sourcePath, maxWidth, maxHeight);
+});
+
+ipcMain.handle('image:resize-preview', async (_event, sourcePath, options, maxWidth, maxHeight) => {
+  if (typeof sourcePath !== 'string' || !sourcePath) throw new Error('Imagem inválida.');
+  return resizePreview(sourcePath, options, maxWidth, maxHeight);
 });
 
 ipcMain.handle('optimize:start', async (event, payload) => {
@@ -169,7 +174,7 @@ ipcMain.handle('optimize:start', async (event, payload) => {
   if (Notification.isSupported()) {
     const successful = results.filter((result) => result?.ok).length;
     const notification = new Notification({
-      title: 'ARC Image Resizer — concluído',
+      title: 'ARC Image Studio — concluído',
       body: `${successful} ${successful === 1 ? 'imagem pronta' : 'imagens prontas'} em ${path.basename(batchPath)}.`,
       icon: path.join(currentDirectory, 'renderer', 'assets', 'app.ico')
     });
@@ -223,7 +228,7 @@ ipcMain.handle('resize:start', async (event, payload) => {
   if (Notification.isSupported()) {
     const successful = results.filter((result) => result?.ok).length;
     const notification = new Notification({
-      title: 'ARC Image Resizer — concluído',
+      title: 'ARC Image Studio — concluído',
       body: `${successful} ${successful === 1 ? 'imagem redimensionada' : 'imagens redimensionadas'} em ${path.basename(batchPath)}.`,
       icon: path.join(currentDirectory, 'renderer', 'assets', 'app.ico')
     });

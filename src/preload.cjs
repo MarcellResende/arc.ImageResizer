@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('arc', {
   showOutput: (outputPath) => ipcRenderer.invoke('output:show', outputPath),
   imageMetadata: (sourcePath) => ipcRenderer.invoke('image:metadata', sourcePath),
   imagePreview: (sourcePath, maxWidth, maxHeight) => ipcRenderer.invoke('image:preview', sourcePath, maxWidth, maxHeight),
+  resizePreview: (sourcePath, options, maxWidth, maxHeight) => ipcRenderer.invoke('image:resize-preview', sourcePath, options, maxWidth, maxHeight),
   optimize: (payload) => ipcRenderer.invoke('optimize:start', payload),
   resize: (payload) => ipcRenderer.invoke('resize:start', payload),
   onProgress: (callback) => {

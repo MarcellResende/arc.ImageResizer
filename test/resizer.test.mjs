@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import sharp from 'sharp';
-import { imagePreview, resizeImage } from '../src/resizer.mjs';
+import { imagePreview, resizeImage, resizePreview } from '../src/resizer.mjs';
 
 async function fixture(root, name = 'origem.png') {
   const source = path.join(root, name);
@@ -59,5 +59,21 @@ test('gera preview leve e seguro para a interface', async () => {
     const preview = await imagePreview(source, 320, 240);
     assert.match(preview, /^data:image\/webp;base64,/);
     assert.ok(preview.length > 100);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test('preview simula recorte e proporção do resultado configurado', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'arc-resize-'));
+  try {
+    const source = await fixture(root);
+    const preview = await resizePreview(source, { mode: 'template', width: 1080, height: 1920, lockRatio: true }, 640, 480);
+    assert.equal(preview.outputWidth, 1080);
+    assert.equal(preview.outputHeight, 1920);
+    assert.equal(preview.previewWidth, 270);
+    assert.equal(preview.previewHeight, 480);
+    const buffer = Buffer.from(preview.dataUrl.split(',')[1], 'base64');
+    const metadata = await sharp(buffer).metadata();
+    assert.equal(metadata.width, 270);
+    assert.equal(metadata.height, 480);
   } finally { await rm(root, { recursive: true, force: true }); }
 });

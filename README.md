@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="src/renderer/assets/logo-resizer.png" alt="ARC Image Resizer" width="520">
+  <img src="src/renderer/assets/logo-resizer.png" alt="ARC Image Studio" width="520">
 </p>
 
-# ARC Image Resizer
+# ARC Image Studio
 
-Aplicativo para Windows que comprime e redimensiona imagens em lote. Todo o processamento é local: nenhuma imagem é enviada para a internet e os arquivos originais nunca são alterados.
+Aplicativo para Windows que reúne compressor e resizer de imagens em lote. Todo o processamento é local: nenhuma imagem é enviada para a internet e os arquivos originais nunca são alterados.
 
 ## Como usar
 
@@ -33,6 +33,7 @@ Cada execução cria uma subpasta exclusiva, como `Lote 2026-11-05 14-30-12` ou 
 - Processamento de até quatro imagens simultaneamente.
 - Presets para posts, capas, perfis, anúncios, stories, reels, shorts e thumbnails.
 - Preview grande e selecionável no resizer, com miniaturas leves no compressor.
+- Simulação instantânea do resultado no preview ao alterar dimensões, proporção ou preset.
 - Alta qualidade para JPG e PNG.
 - Interface separada em abas, preservando o lote de cada ferramenta.
 - Funcionamento offline e originais protegidos.

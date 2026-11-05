@@ -71,6 +71,38 @@ export async function imagePreview(sourcePath, maxWidth = 900, maxHeight = 700) 
   return `data:image/webp;base64,${buffer.toString('base64')}`;
 }
 
+export async function resizePreview(sourcePath, options, maxWidth = 900, maxHeight = 700) {
+  if (!isSupportedImage(sourcePath)) throw new Error('Formato não suportado.');
+  const image = sharp(sourcePath, { failOn: 'error', sequentialRead: true });
+  const metadata = await image.metadata();
+  const plan = resizePlan(metadata, options);
+  const previewLimitWidth = Math.min(1200, Math.max(120, Math.round(Number(maxWidth) || 900)));
+  const previewLimitHeight = Math.min(900, Math.max(120, Math.round(Number(maxHeight) || 700)));
+  const scale = Math.min(previewLimitWidth / plan.width, previewLimitHeight / plan.height);
+  const previewWidth = Math.max(1, Math.round(plan.width * scale));
+  const previewHeight = Math.max(1, Math.round(plan.height * scale));
+
+  const buffer = await image
+    .rotate()
+    .resize({
+      width: previewWidth,
+      height: previewHeight,
+      fit: plan.fit,
+      position: 'centre',
+      withoutEnlargement: false
+    })
+    .webp({ quality: 86, effort: 4 })
+    .toBuffer();
+
+  return {
+    dataUrl: `data:image/webp;base64,${buffer.toString('base64')}`,
+    outputWidth: plan.width,
+    outputHeight: plan.height,
+    previewWidth,
+    previewHeight
+  };
+}
+
 export async function resizeImage({ sourcePath, outputRoot, relativePath, options }) {
   if (!isSupportedImage(sourcePath)) {
     throw new Error('Formato não suportado. Use arquivos JPG, JPEG ou PNG.');

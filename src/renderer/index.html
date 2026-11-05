@@ -16,7 +16,7 @@
         <button class="tool-tab active" data-tool="compressor" aria-pressed="true"><span class="tool-tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="8" height="8" rx="2"/><path d="M3 8V3h5M3.8 3.8 9 9M21 8V3h-5m4.2.8L15 9M3 16v5h5m-4.2-.8L9 15M21 16v5h-5m4.2-.8L15 15"/></svg></span><span><strong>Compressor</strong><small>reduzir arquivos</small></span></button>
         <button class="tool-tab" data-tool="resizer" aria-pressed="false"><span class="tool-tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect class="dashed-frame" x="8" y="3" width="13" height="13" rx="2"/><rect x="3" y="10" width="10" height="11" rx="2"/><path d="m11 13 9-9m-5 0h5v5"/></svg></span><span><strong>Resizer</strong><small>alterar dimensões</small></span></button>
       </nav>
-      <div class="topbar-meta"><span class="version-pill">v2.1</span></div>
+      <div class="topbar-meta"><span class="version-pill">v2.2</span></div>
     </header>
 
     <div id="compressor-view" class="tool-view">
@@ -48,7 +48,7 @@
           <div class="resize-workspace">
             <div class="image-preview-card">
               <div class="image-preview-stage"><div id="resize-preview-placeholder" class="preview-placeholder"><svg viewBox="0 0 48 48"><path d="M8 11h32v26H8zM12 32l8-8 6 6 5-5 5 7M31 18h.01"/></svg><span>Preparando preview…</span></div><img id="resize-preview-image" class="hidden" alt="Preview da imagem selecionada"></div>
-              <div class="preview-caption"><div><strong id="resize-preview-name">Imagem selecionada</strong><small id="resize-preview-meta">Clique em um arquivo para visualizar</small></div><span class="preview-badge">PREVIEW</span></div>
+              <div class="preview-caption"><div><strong id="resize-preview-name">Imagem selecionada</strong><small id="resize-preview-meta">Clique em um arquivo para visualizar</small></div><div class="preview-actions"><span id="resize-preview-badge" class="preview-badge">RESULTADO</span><button id="refresh-resize-preview" class="preview-refresh" type="button" title="Atualizar preview"><svg viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M18.5 9A7 7 0 0 0 6 7l-2 5M5.5 15A7 7 0 0 0 18 17l2-5"/></svg></button></div></div>
             </div>
             <div class="resize-queue-files"><div id="resize-progress-wrap" class="progress-wrap hidden"><div class="progress-track"><div id="resize-progress-bar" class="progress-bar"></div></div><span id="resize-progress-text">Preparando…</span></div><div class="list-head"><span>ARQUIVO</span><span>RESULTADO</span><span>STATUS</span></div><div id="resize-file-list" class="file-list"></div></div>
           </div>
