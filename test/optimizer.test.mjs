@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import sharp from 'sharp';
 import { createBatchDirectory, isSupportedImage, optimizeImage, uniqueDestination } from '../src/optimizer.mjs';
 
 const PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
@@ -68,6 +69,36 @@ test('otimiza JPEG sem aumentar o tamanho', async () => {
     assert.equal(optimized[0], 0xff);
     assert.equal(optimized[1], 0xd8);
     assert.ok(optimized.length <= original.length);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('modo de redução forte diminui um JPEG mantendo formato válido', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'arc-resizer-'));
+  const source = path.join(root, 'foto-grande.jpg');
+  const output = path.join(root, 'output');
+  try {
+    await sharp({
+      create: {
+        width: 1400,
+        height: 900,
+        channels: 3,
+        background: { r: 28, g: 115, b: 210 }
+      }
+    }).jpeg({ quality: 100, chromaSubsampling: '4:4:4' }).toFile(source);
+
+    const result = await optimizeImage({
+      sourcePath: source,
+      outputRoot: output,
+      relativePath: 'foto-grande.jpg',
+      level: 'compact'
+    });
+    const optimized = await readFile(result.destination);
+    assert.equal(optimized[0], 0xff);
+    assert.equal(optimized[1], 0xd8);
+    assert.ok(result.optimizedBytes < result.originalBytes);
+    assert.match(result.method, /alta fidelidade visual/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

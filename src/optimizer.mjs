@@ -2,10 +2,12 @@ import { spawn } from 'node:child_process';
 import { access, copyFile, mkdir, rename, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import sharp from 'sharp';
 
 const SUPPORTED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png']);
 const jpegtranPath = fileURLToPath(new URL('../vendor/jpegtran.exe', import.meta.url));
 const optipngPath = fileURLToPath(new URL('../vendor/optipng.exe', import.meta.url));
+const reservedDestinations = new Set();
 
 function executablePath(binaryPath) {
   return binaryPath.replace('app.asar', 'app.asar.unpacked');
@@ -58,10 +60,11 @@ export async function uniqueDestination(outputRoot, relativePath, fallbackName) 
 
   let candidate = path.join(directory, parsed.base);
   let suffix = 2;
-  while (await exists(candidate)) {
+  while (reservedDestinations.has(candidate.toLowerCase()) || await exists(candidate)) {
     candidate = path.join(directory, `${parsed.name} (${suffix})${parsed.ext}`);
     suffix += 1;
   }
+  reservedDestinations.add(candidate.toLowerCase());
   return candidate;
 }
 
@@ -91,12 +94,39 @@ export async function createBatchDirectory(outputRoot, now = new Date()) {
   throw new Error('Não foi possível criar uma nova pasta para este lote.');
 }
 
-async function optimizeToTemporary(sourcePath, temporaryPath, level) {
+async function compactToTemporary(sourcePath, temporaryPath) {
+  const extension = path.extname(sourcePath).toLowerCase();
+  const pipeline = sharp(sourcePath, { failOn: 'error', sequentialRead: true }).rotate();
+
+  if (extension === '.png') {
+    await pipeline.png({
+      compressionLevel: 9,
+      adaptiveFiltering: true,
+      palette: true,
+      quality: 88,
+      effort: 5
+    }).toFile(temporaryPath);
+    return 'PNG reduzido com alta fidelidade visual';
+  }
+
+  await pipeline.jpeg({
+    quality: 84,
+    mozjpeg: true,
+    progressive: true,
+    chromaSubsampling: '4:2:0'
+  }).toFile(temporaryPath);
+  return 'JPEG recomprimido com alta fidelidade visual';
+}
+
+async function optimizeToTemporary(sourcePath, temporaryPath, mode) {
+  if (mode === 'compact' || mode === 'maximum') {
+    return compactToTemporary(sourcePath, temporaryPath);
+  }
+
   const extension = path.extname(sourcePath).toLowerCase();
   if (extension === '.png') {
-    const optimizationLevel = level === 'maximum' ? '7' : '4';
-    await run(optipngPath, [`-o${optimizationLevel}`, '-quiet', '-out', temporaryPath, sourcePath]);
-    return 'PNG recomprimido sem alterar os pixels';
+    await run(optipngPath, ['-o2', '-quiet', '-out', temporaryPath, sourcePath]);
+    return 'PNG otimizado rapidamente sem alterar os pixels';
   }
 
   await run(jpegtranPath, [
@@ -109,7 +139,7 @@ async function optimizeToTemporary(sourcePath, temporaryPath, level) {
   return 'JPEG reorganizado sem recodificar os pixels';
 }
 
-export async function optimizeImage({ sourcePath, outputRoot, relativePath, level = 'balanced' }) {
+export async function optimizeImage({ sourcePath, outputRoot, relativePath, level = 'lossless' }) {
   if (!isSupportedImage(sourcePath)) {
     throw new Error('Formato não suportado. Use arquivos JPG, JPEG ou PNG.');
   }

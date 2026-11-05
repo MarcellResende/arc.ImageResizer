@@ -13,5 +13,10 @@ contextBridge.exposeInMainWorld('arc', {
     ipcRenderer.on('optimize:progress', listener);
     return () => ipcRenderer.removeListener('optimize:progress', listener);
   },
+  onStarted: (callback) => {
+    const listener = (_event, data) => callback(data);
+    ipcRenderer.on('optimize:started', listener);
+    return () => ipcRenderer.removeListener('optimize:started', listener);
+  },
   getPathForFile: (file) => webUtils.getPathForFile(file)
 });

@@ -23,6 +23,7 @@ const elements = {
   progressWrap: document.querySelector('#progress-wrap'),
   progressBar: document.querySelector('#progress-bar'),
   progressText: document.querySelector('#progress-text'),
+  workingAnimation: document.querySelector('#working-animation'),
   summary: document.querySelector('#summary'),
   summaryText: document.querySelector('#summary-text'),
   savedSize: document.querySelector('#saved-size'),
@@ -137,6 +138,7 @@ async function startOptimization() {
   elements.addMore.disabled = true;
   elements.selectOutput.disabled = true;
   elements.progressWrap.classList.remove('hidden');
+  elements.workingAnimation.classList.remove('hidden');
   elements.progressBar.style.width = '0%';
   elements.progressText.textContent = `0 de ${state.items.length}`;
   renderQueue();
@@ -151,6 +153,7 @@ async function startOptimization() {
     state.completed = true;
     showSummary(payload.results, payload.batchPath);
   } catch (error) {
+    elements.workingAnimation.classList.add('hidden');
     window.alert(error?.message || 'Não foi possível processar este lote.');
   } finally {
     state.running = false;
@@ -172,6 +175,7 @@ function showSummary(results, batchPath) {
   elements.queue.classList.add('hidden');
   elements.dropZone.classList.add('hidden');
   elements.summary.classList.remove('hidden');
+  elements.workingAnimation.classList.add('hidden');
   elements.savedSize.textContent = formatBytes(savedBytes);
   elements.savedPercent.textContent = `${percentage.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
   elements.processedCount.textContent = successful.length.toLocaleString('pt-BR');
@@ -187,6 +191,7 @@ function resetBatch() {
   state.completed = false;
   state.results.clear();
   elements.progressWrap.classList.add('hidden');
+  elements.workingAnimation.classList.add('hidden');
   elements.progressBar.style.width = '0%';
   renderQueue();
 }
@@ -228,6 +233,11 @@ window.arc.onProgress((progress) => {
   const completed = progress.index + 1;
   elements.progressBar.style.width = `${(completed / progress.total) * 100}%`;
   elements.progressText.textContent = `${completed} de ${progress.total}`;
+  renderQueue();
+});
+
+window.arc.onStarted(({ id }) => {
+  state.results.set(id, { working: true });
   renderQueue();
 });
 

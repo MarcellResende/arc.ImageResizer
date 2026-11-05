@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { readdir, stat } from 'node:fs/promises';
+import { availableParallelism } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createBatchDirectory, isSupportedImage, optimizeImage } from './optimizer.mjs';
@@ -8,11 +9,11 @@ const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 
 function createWindow() {
   const window = new BrowserWindow({
-    width: 1180,
-    height: 780,
-    minWidth: 900,
-    minHeight: 620,
-    backgroundColor: '#0b1020',
+    width: 1240,
+    height: 900,
+    minWidth: 1000,
+    minHeight: 720,
+    backgroundColor: '#030610',
     title: 'ARC Image Resizer',
     autoHideMenuBar: true,
     webPreferences: {
@@ -56,7 +57,7 @@ ipcMain.handle('files:select', async () => {
   const result = await dialog.showOpenDialog({
     title: 'Selecione as imagens',
     properties: ['openFile', 'multiSelections'],
-    filters: [{ name: 'Imagens sem perda', extensions: ['jpg', 'jpeg', 'png'] }]
+    filters: [{ name: 'Imagens compatíveis', extensions: ['jpg', 'jpeg', 'png'] }]
   });
   if (result.canceled) return [];
   return Promise.all(result.filePaths.map((filePath) => fileEntry(filePath)));
@@ -108,9 +109,18 @@ ipcMain.handle('optimize:start', async (event, payload) => {
   if (items.length > 10000) throw new Error('O limite por lote é de 10.000 imagens.');
 
   const batchPath = await createBatchDirectory(outputRoot);
-  const results = [];
-  for (let index = 0; index < items.length; index += 1) {
-    const item = items[index];
+  const results = new Array(items.length);
+  const workerCount = Math.min(items.length, Math.max(1, Math.min(4, availableParallelism() - 1)));
+  let nextIndex = 0;
+  let completed = 0;
+
+  async function processNext() {
+    while (nextIndex < items.length) {
+      const itemIndex = nextIndex;
+      nextIndex += 1;
+      const item = items[itemIndex];
+      event.sender.send('optimize:started', { id: item.id });
+
     try {
       const result = await optimizeImage({
         sourcePath: item.path,
@@ -118,26 +128,31 @@ ipcMain.handle('optimize:start', async (event, payload) => {
         outputRoot: batchPath,
         level
       });
-      results.push({ id: item.id, ok: true, ...result });
+      results[itemIndex] = { id: item.id, ok: true, ...result };
+      completed += 1;
       event.sender.send('optimize:progress', {
         id: item.id,
-        index,
+        index: completed - 1,
         total: items.length,
         ok: true,
         ...result
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      results.push({ id: item.id, ok: false, error: message });
+      results[itemIndex] = { id: item.id, ok: false, error: message };
+      completed += 1;
       event.sender.send('optimize:progress', {
         id: item.id,
-        index,
+        index: completed - 1,
         total: items.length,
         ok: false,
         error: message
       });
     }
+    }
   }
+
+  await Promise.all(Array.from({ length: workerCount }, () => processNext()));
   return { results, batchPath };
 });
 

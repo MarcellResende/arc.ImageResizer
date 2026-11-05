@@ -4,22 +4,23 @@
 
 # ARC Image Resizer
 
-Aplicativo para Windows que otimiza imagens em lote **sem perda de qualidade**. Todo o processamento acontece localmente: nenhuma imagem é enviada para a internet e os arquivos originais nunca são alterados.
+Aplicativo para Windows que otimiza imagens em lote com privacidade e controle de qualidade. Todo o processamento acontece localmente: nenhuma imagem é enviada para a internet e os arquivos originais nunca são alterados.
 
 ## Como usar
 
 1. Abra o ARC Image Resizer.
 2. Selecione imagens ou uma pasta completa.
 3. Escolha a pasta onde os resultados serão armazenados.
-4. Selecione a intensidade **Equilibrada** ou **Máxima**.
+4. Escolha entre **Sem perda** ou **Redução forte**.
 5. Clique em **Otimizar imagens**.
 
 Cada processamento cria automaticamente uma nova subpasta, como `Lote 2026-11-05 14-30-12`. Assim, lotes diferentes não misturam arquivos nem geram nomes com `(2)`.
 
 ## Formatos suportados
 
-- JPG e JPEG: otimização das tabelas internas sem recodificar os pixels.
-- PNG: recompressão lossless, mantendo os pixels intactos.
+- **Sem perda:** preserva integralmente os pixels de JPG, JPEG e PNG.
+- **Redução forte:** usa alta fidelidade visual para diminuir muito mais o arquivo.
+- Até quatro imagens são processadas simultaneamente para acelerar lotes grandes.
 
 Se a versão otimizada não ficar menor, o aplicativo salva uma cópia idêntica do original.
 

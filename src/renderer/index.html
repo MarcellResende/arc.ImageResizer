@@ -18,13 +18,13 @@
         </div>
         <div class="topbar-meta">
           <span class="privacy-pill"><span class="status-dot"></span>Processamento local</span>
-          <span class="version-pill">v1.1</span>
+          <span class="version-pill">v1.2</span>
         </div>
       </header>
 
       <section class="hero">
         <div class="hero-copy">
-          <div class="eyebrow"><span></span> OTIMIZAÇÃO SEM PERDA</div>
+          <div class="eyebrow"><span></span> COMPRESSÃO LOCAL EM LOTE</div>
           <h1>Imagens menores.<br><em>Qualidade intacta.</em></h1>
           <p>Comprima milhares de arquivos JPG e PNG de uma só vez, sem alterar nenhum pixel e sem enviar nada para a internet.</p>
           <div class="hero-facts">
@@ -34,29 +34,20 @@
           </div>
         </div>
 
-        <div class="compression-visual" aria-hidden="true">
-          <div class="orbit orbit-large"></div>
-          <div class="orbit orbit-small"></div>
-          <div class="format-card format-left">
-            <div class="file-glyph">JPG</div>
-            <strong>ORIGINAL</strong>
-            <small>100%</small>
-          </div>
-          <div class="process-core">
-            <span class="core-arrow">→</span>
-            <small>LOSSLESS</small>
-          </div>
-          <div class="format-card format-right">
-            <div class="file-glyph compact">JPG</div>
-            <strong>OTIMIZADA</strong>
-            <small>menos MB</small>
+        <div class="performance-visual">
+          <div class="performance-glow"></div>
+          <img src="assets/compression-motion.gif" alt="" class="hero-motion">
+          <div class="performance-copy">
+            <span>PROCESSAMENTO ACELERADO</span>
+            <strong>Até 4 imagens ao mesmo tempo</strong>
+            <p>Mais velocidade nos lotes e uma nova opção de redução forte.</p>
           </div>
         </div>
       </section>
 
       <section class="upload-card">
         <div id="drop-zone" class="drop-zone">
-          <div class="upload-symbol" aria-hidden="true"><span>↑</span></div>
+          <img src="assets/upload-motion.gif" alt="" class="upload-motion">
           <div class="drop-copy">
             <h2>Solte suas imagens aqui</h2>
             <p>ou escolha arquivos e pastas do seu computador</p>
@@ -76,6 +67,7 @@
               <p id="queue-subtitle"></p>
             </div>
             <div class="queue-actions">
+              <img id="working-animation" src="assets/compression-motion.gif" alt="Compactando" class="working-animation hidden">
               <button id="add-more" class="text-button">＋ Adicionar</button>
               <button id="clear" class="text-button danger">Limpar</button>
             </div>
@@ -107,7 +99,9 @@
 
       <section class="settings-bar">
         <div class="setting setting-destination">
-          <div class="setting-icon">⌁</div>
+          <div class="setting-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M3 7.5h6l2 2h10v8.75A1.75 1.75 0 0 1 19.25 20H4.75A1.75 1.75 0 0 1 3 18.25V7.5Z"/><path d="M3 7.5V5.75A1.75 1.75 0 0 1 4.75 4h4.1l2 2H19a2 2 0 0 1 2 2v1.5"/></svg>
+          </div>
           <div class="setting-copy">
             <label for="output-path">SALVAR OS LOTES EM</label>
             <input id="output-path" type="text" readonly aria-label="Pasta de saída">
@@ -120,12 +114,12 @@
             <span class="setting-title">INTENSIDADE</span>
             <div class="segmented-control">
               <label>
-                <input type="radio" name="level" value="balanced" checked>
-                <span>Equilibrada</span>
+                <input type="radio" name="level" value="lossless" checked>
+                <span><strong>Sem perda</strong><small>mais rápida</small></span>
               </label>
               <label>
-                <input type="radio" name="level" value="maximum">
-                <span>Máxima</span>
+                <input type="radio" name="level" value="compact">
+                <span><strong>Redução forte</strong><small>alta qualidade</small></span>
               </label>
             </div>
           </div>
@@ -138,9 +132,9 @@
       </section>
 
       <section class="feature-grid">
-        <article><div class="feature-number">01</div><div><strong>Zero perda visual</strong><p>Nenhum pixel é recodificado.</p></div></article>
-        <article><div class="feature-number">02</div><div><strong>Privacidade total</strong><p>Seus arquivos nunca saem do PC.</p></div></article>
-        <article><div class="feature-number">03</div><div><strong>Pastas por lote</strong><p>Cada execução fica separada.</p></div></article>
+        <article><div class="feature-icon"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></div><div><strong>Qualidade sob controle</strong><p>Escolha entre pixels intactos ou redução visualmente imperceptível.</p></div></article>
+        <article><div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.6 2.8 8.1 7 10 4.2-1.9 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg></div><div><strong>Privacidade total</strong><p>Seus arquivos nunca saem do computador.</p></div></article>
+        <article><div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M4 6h6l2 2h8v11H4V6Z"/><path d="M8 3v6M5 6h6"/></svg></div><div><strong>Pastas por lote</strong><p>Cada processamento fica separado e fácil de encontrar.</p></div></article>
       </section>
     </main>
     <script src="app.js"></script>
