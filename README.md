@@ -16,6 +16,8 @@ Aplicativo para Windows que otimiza imagens em lote com privacidade e controle d
 
 Cada processamento cria automaticamente uma nova subpasta, como `Lote 2026-11-05 14-30-12`. Assim, lotes diferentes não misturam arquivos nem geram nomes com `(2)`.
 
+Ao terminar, o aplicativo mostra o caminho completo do lote, oferece um botão para abrir a pasta e envia uma notificação local do Windows.
+
 ## Formatos suportados
 
 - **Sem perda:** preserva integralmente os pixels de JPG, JPEG e PNG.

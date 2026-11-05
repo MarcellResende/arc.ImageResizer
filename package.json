@@ -1,6 +1,6 @@
 {
   "name": "arc-image-resizer",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Otimizador de imagens em lote com modos sem perda e alta fidelidade visual.",
   "type": "module",
   "main": "src/main.mjs",

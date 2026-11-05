@@ -26,6 +26,7 @@ const elements = {
   workingAnimation: document.querySelector('#working-animation'),
   summary: document.querySelector('#summary'),
   summaryText: document.querySelector('#summary-text'),
+  summaryPath: document.querySelector('#summary-path'),
   savedSize: document.querySelector('#saved-size'),
   savedPercent: document.querySelector('#saved-percent'),
   processedCount: document.querySelector('#processed-count'),
@@ -63,6 +64,7 @@ function addItems(items) {
 }
 
 function renderQueue() {
+  if (state.completed) return;
   const hasItems = state.items.length > 0;
   elements.dropZone.classList.toggle('hidden', hasItems);
   elements.queue.classList.toggle('hidden', !hasItems);
@@ -183,6 +185,8 @@ function showSummary(results, batchPath) {
   elements.summaryText.textContent = failed > 0
     ? `${successful.length} imagens foram salvas em “${batchName}” e ${failed} não puderam ser processadas.`
     : `Tudo foi salvo em “${batchName}”, preservando integralmente a qualidade.`;
+  elements.summaryPath.textContent = batchPath;
+  elements.summaryPath.title = batchPath;
 }
 
 function resetBatch() {
@@ -233,10 +237,11 @@ window.arc.onProgress((progress) => {
   const completed = progress.index + 1;
   elements.progressBar.style.width = `${(completed / progress.total) * 100}%`;
   elements.progressText.textContent = `${completed} de ${progress.total}`;
-  renderQueue();
+  if (!state.completed) renderQueue();
 });
 
 window.arc.onStarted(({ id }) => {
+  if (state.completed) return;
   state.results.set(id, { working: true });
   renderQueue();
 });

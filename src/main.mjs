@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Notification, shell } from 'electron';
 import { readdir, stat } from 'node:fs/promises';
 import { availableParallelism } from 'node:os';
 import path from 'node:path';
@@ -15,6 +15,7 @@ function createWindow() {
     minHeight: 720,
     backgroundColor: '#030610',
     title: 'ARC Image Resizer',
+    icon: path.join(currentDirectory, 'renderer', 'assets', 'app.ico'),
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(currentDirectory, 'preload.cjs'),
@@ -153,6 +154,18 @@ ipcMain.handle('optimize:start', async (event, payload) => {
   }
 
   await Promise.all(Array.from({ length: workerCount }, () => processNext()));
+
+  if (Notification.isSupported()) {
+    const successful = results.filter((result) => result?.ok).length;
+    const notification = new Notification({
+      title: 'ARC Image Resizer — concluído',
+      body: `${successful} ${successful === 1 ? 'imagem pronta' : 'imagens prontas'} em ${path.basename(batchPath)}.`,
+      icon: path.join(currentDirectory, 'renderer', 'assets', 'app.ico')
+    });
+    notification.on('click', () => shell.openPath(batchPath));
+    notification.show();
+  }
+
   return { results, batchPath };
 });
 
