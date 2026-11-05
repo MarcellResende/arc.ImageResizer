@@ -32,6 +32,7 @@ Cada execução cria uma subpasta exclusiva, como `Lote 2026-11-05 14-30-12` ou 
 
 - Processamento de até quatro imagens simultaneamente.
 - Presets para posts, capas, perfis, anúncios, stories, reels, shorts e thumbnails.
+- Preview grande e selecionável no resizer, com miniaturas leves no compressor.
 - Alta qualidade para JPG e PNG.
 - Interface separada em abas, preservando o lote de cada ferramenta.
 - Funcionamento offline e originais protegidos.

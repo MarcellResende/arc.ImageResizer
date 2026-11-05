@@ -1,6 +1,6 @@
 {
   "name": "arc-image-resizer",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Compressor e redimensionador de imagens em lote, com presets para redes sociais.",
   "type": "module",
   "main": "src/main.mjs",

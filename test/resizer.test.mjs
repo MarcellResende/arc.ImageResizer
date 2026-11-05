@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import sharp from 'sharp';
-import { resizeImage } from '../src/resizer.mjs';
+import { imagePreview, resizeImage } from '../src/resizer.mjs';
 
 async function fixture(root, name = 'origem.png') {
   const source = path.join(root, name);
@@ -49,5 +49,15 @@ test('preset social preserva proporção e entrega a medida exata', async () => 
     const result = await resizeImage({ sourcePath: source, outputRoot: path.join(root, 'out'), relativePath: 'origem.png', options: { mode: 'template', width: 1080, height: 1920, lockRatio: true } });
     assert.equal(result.outputWidth, 1080);
     assert.equal(result.outputHeight, 1920);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test('gera preview leve e seguro para a interface', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'arc-resize-'));
+  try {
+    const source = await fixture(root);
+    const preview = await imagePreview(source, 320, 240);
+    assert.match(preview, /^data:image\/webp;base64,/);
+    assert.ok(preview.length > 100);
   } finally { await rm(root, { recursive: true, force: true }); }
 });

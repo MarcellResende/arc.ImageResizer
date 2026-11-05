@@ -4,7 +4,7 @@ import { availableParallelism } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createBatchDirectory, isSupportedImage, optimizeImage } from './optimizer.mjs';
-import { imageMetadata, resizeImage } from './resizer.mjs';
+import { imageMetadata, imagePreview, resizeImage } from './resizer.mjs';
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 
@@ -107,6 +107,11 @@ ipcMain.handle('output:show', async (_event, outputPath) => {
 ipcMain.handle('image:metadata', async (_event, sourcePath) => {
   if (typeof sourcePath !== 'string' || !sourcePath) throw new Error('Imagem inválida.');
   return imageMetadata(sourcePath);
+});
+
+ipcMain.handle('image:preview', async (_event, sourcePath, maxWidth, maxHeight) => {
+  if (typeof sourcePath !== 'string' || !sourcePath) throw new Error('Imagem inválida.');
+  return imagePreview(sourcePath, maxWidth, maxHeight);
 });
 
 ipcMain.handle('optimize:start', async (event, payload) => {

@@ -59,6 +59,18 @@ export async function imageMetadata(sourcePath) {
   return orientedSize(metadata);
 }
 
+export async function imagePreview(sourcePath, maxWidth = 900, maxHeight = 700) {
+  if (!isSupportedImage(sourcePath)) throw new Error('Formato não suportado.');
+  const width = Math.min(1200, Math.max(48, Math.round(Number(maxWidth) || 900)));
+  const height = Math.min(900, Math.max(48, Math.round(Number(maxHeight) || 700)));
+  const buffer = await sharp(sourcePath, { failOn: 'error', sequentialRead: true })
+    .rotate()
+    .resize({ width, height, fit: 'inside', withoutEnlargement: true })
+    .webp({ quality: 84, effort: 4 })
+    .toBuffer();
+  return `data:image/webp;base64,${buffer.toString('base64')}`;
+}
+
 export async function resizeImage({ sourcePath, outputRoot, relativePath, options }) {
   if (!isSupportedImage(sourcePath)) {
     throw new Error('Formato não suportado. Use arquivos JPG, JPEG ou PNG.');

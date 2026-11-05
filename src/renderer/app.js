@@ -1,49 +1,58 @@
 const compressor = { items: [], outputRoot: '', batchPath: '', running: false, completed: false, results: new Map() };
 const resizer = {
   items: [], outputRoot: '', batchPath: '', running: false, completed: false, results: new Map(),
-  mode: 'dimensions', lockRatio: true, sourceRatio: 1, primaryDimension: 'width', platform: 'instagram', presetId: 'instagram-square'
+  mode: 'dimensions', lockRatio: true, sourceRatio: 1, primaryDimension: 'width', platform: 'instagram', presetId: 'instagram-square', selectedItemId: ''
 };
 
 const presets = {
   instagram: [
-    { id: 'instagram-square', name: 'Post quadrado', width: 1080, height: 1080, icon: '□' },
-    { id: 'instagram-portrait', name: 'Post retrato', width: 1080, height: 1350, icon: '▯' },
-    { id: 'instagram-story', name: 'Story / Reels', width: 1080, height: 1920, icon: '▯' },
-    { id: 'instagram-profile', name: 'Foto de perfil', width: 320, height: 320, icon: '○' }
+    { id: 'instagram-square', name: 'Post quadrado', width: 1080, height: 1080, kind: 'square' },
+    { id: 'instagram-portrait', name: 'Post retrato', width: 1080, height: 1350, kind: 'portrait' },
+    { id: 'instagram-story', name: 'Story / Reels', width: 1080, height: 1920, kind: 'vertical' },
+    { id: 'instagram-profile', name: 'Foto de perfil', width: 320, height: 320, kind: 'profile' }
   ],
   facebook: [
-    { id: 'facebook-cover', name: 'Capa', width: 851, height: 315, icon: '▭' },
-    { id: 'facebook-feed', name: 'Post / link', width: 1200, height: 630, icon: '▭' },
-    { id: 'facebook-square', name: 'Post / anúncio', width: 1080, height: 1080, icon: '□' },
-    { id: 'facebook-profile', name: 'Foto de perfil', width: 320, height: 320, icon: '○' }
+    { id: 'facebook-cover', name: 'Capa', width: 851, height: 315, kind: 'cover' },
+    { id: 'facebook-feed', name: 'Post / link', width: 1200, height: 630, kind: 'landscape' },
+    { id: 'facebook-square', name: 'Post / anúncio', width: 1080, height: 1080, kind: 'square' },
+    { id: 'facebook-profile', name: 'Foto de perfil', width: 320, height: 320, kind: 'profile' }
   ],
   x: [
-    { id: 'x-header', name: 'Capa do perfil', width: 1500, height: 500, icon: '▭' },
-    { id: 'x-post', name: 'Post horizontal', width: 1600, height: 900, icon: '▭' },
-    { id: 'x-square', name: 'Post quadrado', width: 1080, height: 1080, icon: '□' },
-    { id: 'x-profile', name: 'Foto de perfil', width: 400, height: 400, icon: '○' }
+    { id: 'x-header', name: 'Capa do perfil', width: 1500, height: 500, kind: 'cover' },
+    { id: 'x-post', name: 'Post horizontal', width: 1600, height: 900, kind: 'landscape' },
+    { id: 'x-square', name: 'Post quadrado', width: 1080, height: 1080, kind: 'square' },
+    { id: 'x-profile', name: 'Foto de perfil', width: 400, height: 400, kind: 'profile' }
   ],
   tiktok: [
-    { id: 'tiktok-video', name: 'Vídeo / post', width: 1080, height: 1920, icon: '▯' },
-    { id: 'tiktok-cover', name: 'Capa vertical', width: 1080, height: 1920, icon: '▯' },
-    { id: 'tiktok-profile', name: 'Foto de perfil', width: 200, height: 200, icon: '○' }
+    { id: 'tiktok-video', name: 'Vídeo / post', width: 1080, height: 1920, kind: 'vertical' },
+    { id: 'tiktok-cover', name: 'Capa vertical', width: 1080, height: 1920, kind: 'portrait' },
+    { id: 'tiktok-profile', name: 'Foto de perfil', width: 200, height: 200, kind: 'profile' }
   ],
   linkedin: [
-    { id: 'linkedin-cover', name: 'Capa do perfil', width: 1584, height: 396, icon: '▭' },
-    { id: 'linkedin-post', name: 'Post / link', width: 1200, height: 627, icon: '▭' },
-    { id: 'linkedin-square', name: 'Post quadrado', width: 1080, height: 1080, icon: '□' },
-    { id: 'linkedin-profile', name: 'Foto de perfil', width: 400, height: 400, icon: '○' }
+    { id: 'linkedin-cover', name: 'Capa do perfil', width: 1584, height: 396, kind: 'cover' },
+    { id: 'linkedin-post', name: 'Post / link', width: 1200, height: 627, kind: 'landscape' },
+    { id: 'linkedin-square', name: 'Post quadrado', width: 1080, height: 1080, kind: 'square' },
+    { id: 'linkedin-profile', name: 'Foto de perfil', width: 400, height: 400, kind: 'profile' }
   ],
   youtube: [
-    { id: 'youtube-thumbnail', name: 'Thumbnail', width: 1280, height: 720, icon: '▭' },
-    { id: 'youtube-banner', name: 'Banner do canal', width: 2560, height: 1440, icon: '▭' },
-    { id: 'youtube-short', name: 'Short', width: 1080, height: 1920, icon: '▯' },
-    { id: 'youtube-profile', name: 'Foto do canal', width: 800, height: 800, icon: '○' }
+    { id: 'youtube-thumbnail', name: 'Thumbnail', width: 1280, height: 720, kind: 'landscape' },
+    { id: 'youtube-banner', name: 'Banner do canal', width: 2560, height: 1440, kind: 'cover' },
+    { id: 'youtube-short', name: 'Short', width: 1080, height: 1920, kind: 'vertical' },
+    { id: 'youtube-profile', name: 'Foto do canal', width: 800, height: 800, kind: 'profile' }
   ]
 };
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
+const thumbnailCache = new Map();
+
+const thumbnailObserver = new IntersectionObserver((entries) => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    thumbnailObserver.unobserve(entry.target);
+    loadThumbnail(entry.target);
+  }
+}, { rootMargin: '100px' });
 
 const compressorElements = {
   selectFiles: $('#select-files'), selectFolder: $('#select-folder'), addMore: $('#add-more'), selectOutput: $('#select-output'),
@@ -63,9 +72,30 @@ const resizeElements = {
   summaryText: $('#resize-summary-text'), summaryPath: $('#resize-summary-path'), processedCount: $('#resize-processed-count'),
   resultSize: $('#resize-result-size'), openOutput: $('#resize-open-output'), newBatch: $('#resize-new-batch'), width: $('#resize-width'),
   height: $('#resize-height'), percentage: $('#resize-percentage'), percentageRange: $('#resize-percentage-range'), ratioLock: $('#ratio-lock'),
-  templateRatioLock: $('#template-ratio-lock'), targetLabel: $('#resize-target-label'), targetDetail: $('#resize-target-detail'),
-  modeHint: $('#resize-mode-hint'), presetGrid: $('#preset-grid')
+  ratioLockInput: $('#ratio-lock-input'), templateRatioLock: $('#template-ratio-lock'), templateRatioLockInput: $('#template-ratio-lock-input'),
+  targetLabel: $('#resize-target-label'), targetDetail: $('#resize-target-detail'), modeHint: $('#resize-mode-hint'), presetGrid: $('#preset-grid'),
+  previewImage: $('#resize-preview-image'), previewPlaceholder: $('#resize-preview-placeholder'), previewName: $('#resize-preview-name'), previewMeta: $('#resize-preview-meta')
 };
+
+async function loadThumbnail(image) {
+  const sourcePath = image.dataset.path;
+  if (!sourcePath) return;
+  try {
+    let preview = thumbnailCache.get(sourcePath);
+    if (!preview) {
+      preview = window.arc.imagePreview(sourcePath, 96, 96);
+      thumbnailCache.set(sourcePath, preview);
+    }
+    image.src = await preview;
+    image.classList.add('loaded');
+  } catch {
+    image.closest('.file-thumb')?.classList.add('unavailable');
+  }
+}
+
+function observeThumbnails(container) {
+  container.querySelectorAll('img[data-path]').forEach((image) => thumbnailObserver.observe(image));
+}
 
 function formatBytes(bytes) {
   if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
@@ -103,12 +133,18 @@ function renderCompressorQueue() {
     if (result?.working) { status = 'Otimizando'; statusClass = 'working'; }
     else if (result?.ok) { status = result.savedBytes > 0 ? `−${result.savedPercent.toFixed(1)}%` : 'Já otimizada'; statusClass = 'success'; size = `${formatBytes(result.originalBytes)} → ${formatBytes(result.optimizedBytes)}`; detail = result.method; }
     else if (result?.error) { status = 'Falhou'; statusClass = 'error'; detail = result.error; }
-    return fileRow(item, detail, size, status, statusClass);
+    return fileRow(item, detail, size, status, statusClass, { thumbnail: true });
   }).join('');
+  observeThumbnails(compressorElements.fileList);
 }
 
-function fileRow(item, detail, value, status, statusClass) {
-  return `<div class="file-row"><div class="file-info"><div class="file-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div><div class="file-detail" title="${escapeHtml(detail)}">${escapeHtml(detail)}</div></div><div class="file-size">${escapeHtml(value)}</div><div class="file-status ${statusClass}">${escapeHtml(status)}</div></div>`;
+function fileRow(item, detail, value, status, statusClass, options = {}) {
+  const thumbnail = options.thumbnail
+    ? `<span class="file-thumb"><img data-path="${escapeHtml(item.path)}" alt="" loading="lazy"><span class="thumb-fallback">▧</span></span>`
+    : '';
+  const activeClass = options.active ? ' selected' : '';
+  const itemId = options.selectable ? ` data-item-id="${escapeHtml(item.id)}"` : '';
+  return `<div class="file-row${options.thumbnail ? ' has-thumbnail' : ''}${options.selectable ? ' selectable' : ''}${activeClass}"${itemId}>${thumbnail}<div class="file-info"><div class="file-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div><div class="file-detail" title="${escapeHtml(detail)}">${escapeHtml(detail)}</div></div><div class="file-size">${escapeHtml(value)}</div><div class="file-status ${statusClass}">${escapeHtml(status)}</div></div>`;
 }
 
 async function chooseCompressorFiles(folder = false) {
@@ -162,14 +198,8 @@ async function addResizeItems(items) {
   const wasEmpty = resizer.items.length === 0;
   addUniqueItems(resizer, items);
   if (wasEmpty && resizer.items[0]) {
-    try {
-      const metadata = await window.arc.imageMetadata(resizer.items[0].path);
-      if (metadata.width && metadata.height) {
-        resizer.sourceRatio = metadata.width / metadata.height;
-        resizeElements.width.value = metadata.width;
-        resizeElements.height.value = metadata.height;
-      }
-    } catch { /* The backend reports invalid images during processing. */ }
+    resizer.selectedItemId = resizer.items[0].id;
+    await loadResizePreview(resizer.items[0], true);
   }
   updateResizeTarget(); renderResizeQueue();
 }
@@ -189,8 +219,45 @@ function renderResizeQueue() {
     if (result?.working) { status = 'Redimensionando'; statusClass = 'working'; }
     else if (result?.ok) { status = 'Pronta'; statusClass = 'success'; value = `${result.outputWidth} × ${result.outputHeight} px`; detail = `${result.originalWidth} × ${result.originalHeight} px → ${value}`; }
     else if (result?.error) { status = 'Falhou'; statusClass = 'error'; detail = result.error; value = '—'; }
-    return fileRow(item, detail, value, status, statusClass);
+    return fileRow(item, detail, value, status, statusClass, { selectable: true, active: item.id === resizer.selectedItemId });
   }).join('');
+  resizeElements.fileList.querySelectorAll('[data-item-id]').forEach((row) => row.addEventListener('click', () => {
+    const item = resizer.items.find((candidate) => candidate.id === row.dataset.itemId);
+    if (!item || item.id === resizer.selectedItemId) return;
+    resizer.selectedItemId = item.id;
+    renderResizeQueue();
+    loadResizePreview(item, true);
+  }));
+}
+
+async function loadResizePreview(item, syncDimensions = false) {
+  if (!item) return;
+  resizeElements.previewName.textContent = item.name;
+  resizeElements.previewMeta.textContent = 'Carregando preview…';
+  resizeElements.previewImage.classList.add('hidden');
+  resizeElements.previewPlaceholder.classList.remove('hidden');
+  try {
+    const [metadata, preview] = await Promise.all([
+      window.arc.imageMetadata(item.path),
+      window.arc.imagePreview(item.path, 900, 620)
+    ]);
+    if (resizer.selectedItemId !== item.id) return;
+    if (syncDimensions && metadata.width && metadata.height) {
+      resizer.sourceRatio = metadata.width / metadata.height;
+      resizeElements.width.value = metadata.width;
+      resizeElements.height.value = metadata.height;
+      resizer.primaryDimension = 'width';
+      updateResizeTarget();
+    }
+    resizeElements.previewImage.src = preview;
+    resizeElements.previewImage.classList.remove('hidden');
+    resizeElements.previewPlaceholder.classList.add('hidden');
+    resizeElements.previewMeta.textContent = `${metadata.width} × ${metadata.height} px · ${formatBytes(item.size)}`;
+  } catch {
+    if (resizer.selectedItemId !== item.id) return;
+    resizeElements.previewMeta.textContent = 'Preview indisponível';
+    resizeElements.previewPlaceholder.querySelector('span').textContent = 'Não foi possível exibir esta imagem';
+  }
 }
 
 function currentPreset() { return presets[resizer.platform].find((preset) => preset.id === resizer.presetId) || presets[resizer.platform][0]; }
@@ -219,11 +286,13 @@ function setResizeMode(mode) {
 
 function setRatioLock(value) {
   resizer.lockRatio = value;
-  for (const button of [resizeElements.ratioLock, resizeElements.templateRatioLock]) {
-    button.classList.toggle('active', value); button.setAttribute('aria-pressed', String(value));
-    const strong = button.querySelector('strong'), small = button.querySelector('small');
-    if (button === resizeElements.ratioLock) { strong.textContent = value ? 'Proporção bloqueada' : 'Proporção livre'; small.textContent = value ? 'sem deformar' : 'largura e altura independentes'; }
-    else { strong.textContent = value ? 'Preservar proporção' : 'Permitir distorção'; small.textContent = value ? 'preenche e recorta bordas se necessário' : 'força exatamente o formato'; }
+  resizeElements.ratioLockInput.checked = value;
+  resizeElements.templateRatioLockInput.checked = value;
+  for (const control of [resizeElements.ratioLock, resizeElements.templateRatioLock]) {
+    control.classList.toggle('active', value);
+    const strong = control.querySelector('strong'), small = control.querySelector('small');
+    if (control === resizeElements.ratioLock) { strong.textContent = 'Bloquear proporção'; small.textContent = value ? 'ativado · evita deformações' : 'desativado · dimensões independentes'; }
+    else { strong.textContent = 'Preservar proporção'; small.textContent = value ? 'ativada · preenche sem deformar' : 'desativada · pode distorcer a imagem'; }
   }
   updateResizeTarget();
 }
@@ -239,9 +308,22 @@ function syncDimension(changed) {
 function renderPresets() {
   const list = presets[resizer.platform];
   if (!list.some((preset) => preset.id === resizer.presetId)) resizer.presetId = list[0].id;
-  resizeElements.presetGrid.innerHTML = list.map((preset) => `<button class="preset-card ${preset.id === resizer.presetId ? 'active' : ''}" data-preset="${preset.id}"><span class="preset-shape">${preset.icon}</span><span><strong>${preset.name}</strong><small>${preset.width} × ${preset.height} px</small></span></button>`).join('');
+  resizeElements.presetGrid.innerHTML = list.map((preset) => `<button class="preset-card ${preset.id === resizer.presetId ? 'active' : ''}" data-preset="${preset.id}"><span class="preset-shape">${presetIcon(preset.kind)}</span><span><strong>${preset.name}</strong><small>${preset.width} × ${preset.height} px</small></span></button>`).join('');
   $$('.preset-card').forEach((button) => button.addEventListener('click', () => { resizer.presetId = button.dataset.preset; renderPresets(); updateResizeTarget(); }));
   updateResizeTarget();
+}
+
+function presetIcon(kind) {
+  const common = '<path class="preset-mountain" d="m7 20 5-5 4 4 3-3 5 5"/><circle class="preset-sun" cx="20" cy="10" r="2"/>';
+  if (kind === 'profile') return '<svg viewBox="0 0 32 32"><circle class="preset-frame" cx="16" cy="16" r="11"/><circle class="preset-person" cx="16" cy="13" r="4"/><path class="preset-person" d="M9.5 24c1.2-4 3.4-6 6.5-6s5.3 2 6.5 6"/></svg>';
+  const frames = {
+    cover: '<rect class="preset-frame" x="3" y="9" width="26" height="14" rx="2"/>',
+    landscape: '<rect class="preset-frame" x="4" y="7" width="24" height="18" rx="2"/>',
+    square: '<rect class="preset-frame" x="5" y="5" width="22" height="22" rx="2"/>',
+    portrait: '<rect class="preset-frame" x="7" y="3" width="18" height="26" rx="2"/>',
+    vertical: '<rect class="preset-frame" x="9" y="2" width="14" height="28" rx="2"/>'
+  };
+  return `<svg viewBox="0 0 32 32">${frames[kind] || frames.square}${common}</svg>`;
 }
 
 function resizeOptions() {
@@ -282,7 +364,9 @@ function showResizeSummary(results, batchPath) {
 }
 
 function resetResize() {
-  Object.assign(resizer, { items: [], batchPath: '', completed: false }); resizer.results.clear();
+  Object.assign(resizer, { items: [], batchPath: '', completed: false, selectedItemId: '' }); resizer.results.clear();
+  resizeElements.previewImage.removeAttribute('src'); resizeElements.previewImage.classList.add('hidden'); resizeElements.previewPlaceholder.classList.remove('hidden');
+  resizeElements.previewName.textContent = 'Imagem selecionada'; resizeElements.previewMeta.textContent = 'Clique em um arquivo para visualizar';
   resizeElements.progressWrap.classList.add('hidden'); resizeElements.working.classList.add('hidden'); renderResizeQueue();
 }
 
@@ -313,7 +397,7 @@ resizeElements.selectOutput.addEventListener('click', () => chooseOutput(resizer
 wireDropZone(resizeElements.dropZone, addResizeItems);
 
 $$('.resize-mode-tab').forEach((button) => button.addEventListener('click', () => setResizeMode(button.dataset.resizeMode)));
-resizeElements.ratioLock.addEventListener('click', () => setRatioLock(!resizer.lockRatio)); resizeElements.templateRatioLock.addEventListener('click', () => setRatioLock(!resizer.lockRatio));
+resizeElements.ratioLockInput.addEventListener('change', () => setRatioLock(resizeElements.ratioLockInput.checked)); resizeElements.templateRatioLockInput.addEventListener('change', () => setRatioLock(resizeElements.templateRatioLockInput.checked));
 resizeElements.width.addEventListener('input', () => syncDimension('width')); resizeElements.height.addEventListener('input', () => syncDimension('height'));
 resizeElements.percentage.addEventListener('input', () => { resizeElements.percentageRange.value = Math.min(200, Number(resizeElements.percentage.value) || 1); updateResizeTarget(); });
 resizeElements.percentageRange.addEventListener('input', () => { resizeElements.percentage.value = resizeElements.percentageRange.value; updateResizeTarget(); });
