@@ -1,7 +1,7 @@
 {
   "name": "arc-image-studio",
-  "version": "2.2.0",
-  "description": "Compressor e redimensionador de imagens em lote, com presets para redes sociais.",
+  "version": "2.3.0",
+  "description": "Compressor, redimensionador e limpador de metadados de imagens em lote.",
   "type": "module",
   "main": "src/main.mjs",
   "author": "ARC",
@@ -14,6 +14,8 @@
     "dist": "electron-builder --win nsis"
   },
   "dependencies": {
+    "electron-updater": "^6.8.11",
+    "exifreader": "^4.52.0",
     "sharp": "^0.35.5"
   },
   "devDependencies": {
@@ -39,6 +41,15 @@
       "output": "release",
       "buildResources": "build"
     },
+    "artifactName": "ARC-Image-Studio-Setup-${version}.${ext}",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "MarcellResende",
+        "repo": "arc.ImageStudio",
+        "releaseType": "release"
+      }
+    ],
     "win": {
       "icon": "build/icon.ico",
       "target": [
@@ -53,6 +64,7 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "ARC Image Studio"

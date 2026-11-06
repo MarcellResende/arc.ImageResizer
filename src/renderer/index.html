@@ -11,13 +11,21 @@
   <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
   <main class="app-shell">
     <header class="topbar">
-      <div class="brand"><img id="brand-logo" src="assets/logo-compressor.png" alt="ARC Image Compressor" class="brand-logo"></div>
+      <div class="brand"><img id="brand-logo" src="assets/logos/logo-image-compressor.png" alt="ARC Image Compressor" class="brand-logo"></div>
       <nav class="tool-switch" aria-label="Escolher ferramenta">
         <button class="tool-tab active" data-tool="compressor" aria-pressed="true"><span class="tool-tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="8" height="8" rx="2"/><path d="M3 8V3h5M3.8 3.8 9 9M21 8V3h-5m4.2.8L15 9M3 16v5h5m-4.2-.8L9 15M21 16v5h-5m4.2-.8L15 15"/></svg></span><span><strong>Compressor</strong><small>reduzir arquivos</small></span></button>
         <button class="tool-tab" data-tool="resizer" aria-pressed="false"><span class="tool-tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect class="dashed-frame" x="8" y="3" width="13" height="13" rx="2"/><rect x="3" y="10" width="10" height="11" rx="2"/><path d="m11 13 9-9m-5 0h5v5"/></svg></span><span><strong>Resizer</strong><small>alterar dimensões</small></span></button>
+        <button class="tool-tab" data-tool="metadata" aria-pressed="false"><span class="tool-tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 2.8 8.3 7 10 4.2-1.7 7-5.5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-5"/></svg></span><span><strong>Metadados</strong><small>proteger privacidade</small></span></button>
       </nav>
-      <div class="topbar-meta"><span class="version-pill">v2.2</span></div>
+      <div class="topbar-meta"><button id="update-button" class="update-button" type="button" title="Verificar atualizações"><span class="update-status-dot"></span><span id="update-button-label">v2.3.0</span></button></div>
     </header>
+
+    <aside id="update-notice" class="update-notice hidden" role="status" aria-live="polite">
+      <div class="update-notice-icon"><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14"/></svg></div>
+      <div class="update-notice-copy"><span id="update-notice-kicker">ATUALIZAÇÃO DISPONÍVEL</span><strong id="update-notice-title">Uma nova versão está pronta</strong><small id="update-notice-detail"></small><div id="update-progress" class="update-progress hidden"><span id="update-progress-bar"></span></div></div>
+      <button id="update-action" class="update-action" type="button">Atualizar agora</button>
+      <button id="update-dismiss" class="update-dismiss" type="button" aria-label="Fechar aviso">×</button>
+    </aside>
 
     <div id="compressor-view" class="tool-view">
       <section class="hero">
@@ -72,6 +80,49 @@
         <div class="setting setting-destination"><div class="setting-icon"><svg viewBox="0 0 24 24"><path d="M3 7.5h6l2 2h10v8.75A1.75 1.75 0 0 1 19.25 20H4.75A1.75 1.75 0 0 1 3 18.25V7.5Z"/><path d="M3 7.5V5.75A1.75 1.75 0 0 1 4.75 4h4.1l2 2H19a2 2 0 0 1 2 2v1.5"/></svg></div><div class="setting-copy"><label for="resize-output-path">SALVAR OS LOTES EM</label><input id="resize-output-path" type="text" readonly></div><button id="resize-select-output" class="small-button">Alterar</button></div>
         <div class="resize-target-preview"><span>RESULTADO</span><strong id="resize-target-label">1080 × 1080 px</strong><small id="resize-target-detail">proporção preservada</small></div>
         <button id="resize-start" class="button action" disabled><span>Redimensionar</span><span class="action-arrow">→</span></button>
+      </section>
+    </div>
+
+    <div id="metadata-view" class="tool-view hidden">
+      <section class="hero">
+        <div class="hero-copy"><div class="eyebrow"><span></span> PRIVACIDADE LOCAL EM LOTE</div><h1>Dados privados fora.<br><em>Imagem intacta.</em></h1><p>Remova EXIF, localização, informações da câmera, comentários e outros dados ocultos sem enviar suas imagens para a internet.</p><div class="hero-facts"><span>✓ Originais protegidos</span><span>✓ Sem perda visual</span><span>✓ Perfil de cores opcional</span></div></div>
+        <div class="performance-visual metadata-visual"><div class="performance-glow"></div><div class="motion-icon motion-metadata"><svg viewBox="0 0 64 64"><circle class="motion-ring" cx="32" cy="32" r="27"/><path class="metadata-shield" d="M32 15 20 20v9c0 9 4.8 15.6 12 19 7.2-3.4 12-10 12-19v-9l-12-5Z"/><path class="metadata-check" d="m25 31 5 5 10-12"/><path class="metadata-spark spark-a" d="M49 13v8m-4-4h8"/><path class="metadata-spark spark-b" d="M13 40v6m-3-3h6"/></svg></div><div class="performance-copy"><span>LIMPEZA SEGURA</span><strong>Privacidade sem alterar a imagem</strong><p>JPEGs são tratados sem recompressão sempre que possível.</p></div></div>
+      </section>
+
+      <section class="upload-card">
+        <div id="metadata-drop-zone" class="drop-zone"><div class="motion-icon motion-upload"><svg viewBox="0 0 64 64"><circle class="motion-ring upload-ring" cx="32" cy="32" r="27"/><path class="upload-tray" d="M19 43v6h26v-6"/><path class="upload-arrow" d="M32 43V17m0 0-10 10m10-10 10 10"/></svg></div><div class="drop-copy"><h2>Escolha as imagens para proteger</h2><p>o ARC analisa os dados ocultos antes da limpeza</p></div><div class="drop-actions"><button id="metadata-select-files" class="button primary">Selecionar imagens</button><button id="metadata-select-folder" class="button ghost">Selecionar pasta</button></div><div class="format-line"><span>JPG</span><span>JPEG</span><span>PNG</span><small>até 10.000 arquivos</small></div></div>
+
+        <div id="metadata-queue" class="queue metadata-queue hidden">
+          <div class="queue-header"><div><span class="section-kicker">ANÁLISE DE PRIVACIDADE</span><h2 id="metadata-queue-title">Imagens selecionadas</h2><p id="metadata-queue-subtitle"></p></div><div class="queue-actions"><div id="metadata-working-animation" class="working-animation hidden"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16"/></svg></div><button id="metadata-add-more" class="text-button">＋ Adicionar</button><button id="metadata-clear" class="text-button danger">Limpar</button></div></div>
+          <div id="metadata-progress-wrap" class="progress-wrap hidden"><div class="progress-track"><div id="metadata-progress-bar" class="progress-bar"></div></div><span id="metadata-progress-text">Preparando…</span></div>
+          <div class="metadata-workspace">
+            <div class="metadata-queue-files"><div class="list-head metadata-list-head"><span></span><span>ARQUIVO</span><span>STATUS</span></div><div id="metadata-file-list" class="file-list metadata-file-list"></div></div>
+            <aside class="metadata-inspector" aria-label="Metadados da imagem selecionada">
+              <div id="metadata-inspector-empty" class="metadata-inspector-empty"><svg viewBox="0 0 48 48"><path d="M9 7h23l7 7v27H9zM32 7v8h7M16 23h16M16 29h16M16 35h10"/></svg><strong>Analisando a imagem…</strong><span>Os metadados aparecerão aqui.</span></div>
+              <div id="metadata-inspector-content" class="hidden">
+                <div class="inspector-heading"><div><span class="section-kicker">ARQUIVO SELECIONADO</span><h3 id="metadata-inspector-name">Imagem</h3><p id="metadata-inspector-summary"></p></div><span id="metadata-total-badge" class="metadata-total-badge">0 METADADOS</span></div>
+                <div id="metadata-health" class="metadata-health hidden"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 9v5m0 3h.01"/></svg><span><strong id="metadata-health-label"></strong><small id="metadata-health-detail"></small></span></div>
+                <div class="origin-grid">
+                  <article id="metadata-ai-card" class="origin-card"><span class="origin-card-icon"><svg viewBox="0 0 24 24"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle cx="12" cy="12" r="4"/></svg></span><span><small>ORIGEM / IA</small><strong id="metadata-ai-label">Analisando…</strong><em id="metadata-ai-detail"></em></span></article>
+                  <article class="origin-card"><span class="origin-card-icon"><svg viewBox="0 0 24 24"><path d="M12 21s7-5.1 7-12a7 7 0 1 0-14 0c0 6.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.4"/></svg></span><span><small>LOCAL</small><strong id="metadata-location-label">Sem localização</strong><em id="metadata-location-detail">Nenhuma coordenada GPS</em></span></article>
+                  <article class="origin-card"><span class="origin-card-icon"><svg viewBox="0 0 24 24"><path d="M4 7h4l2-2h4l2 2h4v11H4z"/><circle cx="12" cy="12.5" r="3.2"/></svg></span><span><small>CAPTURA</small><strong id="metadata-device-label">Dispositivo desconhecido</strong><em id="metadata-date-detail">Sem data de captura</em></span></article>
+                </div>
+                <div id="metadata-evidence" class="metadata-evidence hidden"></div>
+                <div class="metadata-toolbar"><label class="metadata-search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="metadata-search-input" type="search" placeholder="Pesquisar nome ou valor…" autocomplete="off"></label><span id="metadata-visible-count">0 itens</span></div>
+                <div id="metadata-group-filter" class="metadata-group-filter"></div>
+                <div id="metadata-details" class="metadata-details"></div>
+              </div>
+            </aside>
+          </div>
+        </div>
+
+        <div id="metadata-summary" class="summary hidden"><div class="summary-icon">✓</div><span class="section-kicker">LIMPEZA CONCLUÍDA</span><h2>Suas imagens estão protegidas</h2><p id="metadata-summary-text"></p><div class="summary-location"><span>ARQUIVOS SALVOS EM</span><strong id="metadata-summary-path"></strong></div><div class="summary-metrics"><div><span>LIMPAS</span><strong id="metadata-cleaned-count">0</strong></div><div><span>RASTROS DE IA REMOVIDOS</span><strong id="metadata-already-clean-count">0</strong></div><div><span>PROCESSADAS</span><strong id="metadata-processed-count">0</strong></div></div><div class="summary-actions"><button id="metadata-open-output" class="button primary compact">Abrir pasta do lote</button><button id="metadata-new-batch" class="button ghost compact">Novo lote</button></div></div>
+      </section>
+
+      <section class="settings-bar metadata-settings-bar">
+        <div class="setting setting-destination"><div class="setting-icon"><svg viewBox="0 0 24 24"><path d="M3 7.5h6l2 2h10v8.75A1.75 1.75 0 0 1 19.25 20H4.75A1.75 1.75 0 0 1 3 18.25V7.5Z"/><path d="M3 7.5V5.75A1.75 1.75 0 0 1 4.75 4h4.1l2 2H19a2 2 0 0 1 2 2v1.5"/></svg></div><div class="setting-copy"><label for="metadata-output-path">SALVAR OS LOTES EM</label><input id="metadata-output-path" type="text" readonly></div><button id="metadata-select-output" class="small-button">Alterar</button></div>
+        <div class="setting metadata-profile-setting"><label id="metadata-color-profile" class="ratio-checkbox metadata-checkbox"><input id="metadata-color-profile-input" type="checkbox" checked><span class="checkbox-mark"><svg viewBox="0 0 24 24"><path d="m6 12 4 4 8-9"/></svg></span><span class="checkbox-copy"><strong>Preservar perfil de cores</strong><small>ICC mantido · EXIF e rastros de IA removidos</small></span></label></div>
+        <button id="metadata-start" class="button action" disabled><span>Limpar todos os metadados</span><span class="action-arrow">→</span></button>
       </section>
     </div>
   </main>

@@ -3,6 +3,11 @@ const resizer = {
   items: [], outputRoot: '', batchPath: '', running: false, completed: false, results: new Map(),
   mode: 'dimensions', lockRatio: true, sourceRatio: 1, primaryDimension: 'width', platform: 'instagram', presetId: 'instagram-square', selectedItemId: ''
 };
+const metadataCleaner = {
+  items: [], outputRoot: '', batchPath: '', running: false, completed: false,
+  results: new Map(), analysis: new Map(), preserveColorProfile: true, analyzing: false,
+  selectedItemId: '', groupFilter: 'all', search: ''
+};
 
 const presets = {
   instagram: [
@@ -80,6 +85,84 @@ const resizeElements = {
   previewImage: $('#resize-preview-image'), previewPlaceholder: $('#resize-preview-placeholder'), previewName: $('#resize-preview-name'), previewMeta: $('#resize-preview-meta'),
   previewBadge: $('#resize-preview-badge'), previewRefresh: $('#refresh-resize-preview')
 };
+
+const metadataElements = {
+  selectFiles: $('#metadata-select-files'), selectFolder: $('#metadata-select-folder'), addMore: $('#metadata-add-more'),
+  selectOutput: $('#metadata-select-output'), outputPath: $('#metadata-output-path'), start: $('#metadata-start'), clear: $('#metadata-clear'),
+  dropZone: $('#metadata-drop-zone'), queue: $('#metadata-queue'), queueTitle: $('#metadata-queue-title'), queueSubtitle: $('#metadata-queue-subtitle'),
+  fileList: $('#metadata-file-list'), progressWrap: $('#metadata-progress-wrap'), progressBar: $('#metadata-progress-bar'),
+  progressText: $('#metadata-progress-text'), working: $('#metadata-working-animation'), summary: $('#metadata-summary'),
+  summaryText: $('#metadata-summary-text'), summaryPath: $('#metadata-summary-path'), cleanedCount: $('#metadata-cleaned-count'),
+  alreadyCleanCount: $('#metadata-already-clean-count'), processedCount: $('#metadata-processed-count'), openOutput: $('#metadata-open-output'),
+  newBatch: $('#metadata-new-batch'), colorProfile: $('#metadata-color-profile'), colorProfileInput: $('#metadata-color-profile-input'),
+  inspectorEmpty: $('#metadata-inspector-empty'), inspectorContent: $('#metadata-inspector-content'), inspectorName: $('#metadata-inspector-name'),
+  inspectorSummary: $('#metadata-inspector-summary'), totalBadge: $('#metadata-total-badge'), aiCard: $('#metadata-ai-card'),
+  aiLabel: $('#metadata-ai-label'), aiDetail: $('#metadata-ai-detail'), locationLabel: $('#metadata-location-label'),
+  locationDetail: $('#metadata-location-detail'), deviceLabel: $('#metadata-device-label'), dateDetail: $('#metadata-date-detail'),
+  health: $('#metadata-health'), healthLabel: $('#metadata-health-label'), healthDetail: $('#metadata-health-detail'),
+  evidence: $('#metadata-evidence'), searchInput: $('#metadata-search-input'), groupFilter: $('#metadata-group-filter'),
+  visibleCount: $('#metadata-visible-count'), details: $('#metadata-details')
+};
+
+const updateElements = {
+  button: $('#update-button'), buttonLabel: $('#update-button-label'), notice: $('#update-notice'),
+  kicker: $('#update-notice-kicker'), title: $('#update-notice-title'), detail: $('#update-notice-detail'),
+  progress: $('#update-progress'), progressBar: $('#update-progress-bar'), action: $('#update-action'), dismiss: $('#update-dismiss')
+};
+let updateUiState = { status: 'idle', currentVersion: '2.3.0', availableVersion: '', percent: 0, showNotice: false };
+let dismissedUpdateStatus = '';
+
+function renderUpdateState(state) {
+  const previousStatus = updateUiState.status;
+  updateUiState = { ...updateUiState, ...state };
+  if (previousStatus !== updateUiState.status && ['available', 'downloading', 'installing', 'error'].includes(updateUiState.status)) dismissedUpdateStatus = '';
+  const { status, currentVersion, availableVersion, percent = 0, message = '' } = updateUiState;
+  updateElements.button.className = `update-button ${status}`;
+  updateElements.button.disabled = ['checking', 'downloading', 'installing'].includes(status);
+  updateElements.button.title = status === 'available' ? `Atualizar para ${availableVersion}` : 'Verificar atualizações';
+
+  if (status === 'available') updateElements.buttonLabel.textContent = `Atualização v${availableVersion}`;
+  else if (status === 'downloading') updateElements.buttonLabel.textContent = `Baixando ${Math.round(percent)}%`;
+  else if (status === 'installing') updateElements.buttonLabel.textContent = 'Reiniciando…';
+  else if (status === 'checking') updateElements.buttonLabel.textContent = 'Verificando…';
+  else if (status === 'up-to-date') updateElements.buttonLabel.textContent = `v${currentVersion} · atual`;
+  else updateElements.buttonLabel.textContent = `v${currentVersion}`;
+
+  const noticeVisible = updateUiState.showNotice && dismissedUpdateStatus !== status;
+  updateElements.notice.classList.toggle('hidden', !noticeVisible);
+  updateElements.progress.classList.toggle('hidden', !['downloading', 'installing'].includes(status));
+  updateElements.progressBar.style.width = `${status === 'installing' ? 100 : Math.max(0, Math.min(100, percent))}%`;
+  updateElements.action.classList.toggle('hidden', !['available', 'error'].includes(status));
+  updateElements.action.disabled = !['available', 'error'].includes(status);
+
+  if (status === 'available') {
+    updateElements.kicker.textContent = 'ATUALIZAÇÃO DISPONÍVEL';
+    updateElements.title.textContent = `ARC Image Studio v${availableVersion}`;
+    updateElements.detail.textContent = 'Um clique baixa, substitui a versão atual e abre o aplicativo novamente.';
+    updateElements.action.textContent = 'Atualizar agora';
+  } else if (status === 'downloading') {
+    updateElements.kicker.textContent = 'BAIXANDO ATUALIZAÇÃO';
+    updateElements.title.textContent = `${Math.round(percent)}% concluído`;
+    updateElements.detail.textContent = updateUiState.total ? `${formatBytes(updateUiState.transferred)} de ${formatBytes(updateUiState.total)}` : message;
+  } else if (status === 'installing') {
+    updateElements.kicker.textContent = 'TUDO PRONTO';
+    updateElements.title.textContent = 'Instalando e reiniciando…';
+    updateElements.detail.textContent = 'O aplicativo abrirá novamente em instantes.';
+  } else if (status === 'error') {
+    updateElements.kicker.textContent = 'ATUALIZAÇÃO NÃO CONCLUÍDA';
+    updateElements.title.textContent = 'Não foi possível atualizar';
+    updateElements.detail.textContent = message;
+    updateElements.action.textContent = 'Tentar novamente';
+  } else if (status === 'up-to-date') {
+    updateElements.kicker.textContent = 'APLICATIVO ATUALIZADO';
+    updateElements.title.textContent = `Você já está na versão ${currentVersion}`;
+    updateElements.detail.textContent = message;
+  } else if (status === 'development') {
+    updateElements.kicker.textContent = 'MODO DE DESENVOLVIMENTO';
+    updateElements.title.textContent = 'Atualizador disponível no instalador';
+    updateElements.detail.textContent = message;
+  }
+}
 
 async function loadThumbnail(image) {
   const sourcePath = image.dataset.path;
@@ -416,6 +499,222 @@ function resetResize() {
   resizeElements.progressWrap.classList.add('hidden'); resizeElements.working.classList.add('hidden'); renderResizeQueue();
 }
 
+function removableMetadataTypes(analysis) {
+  if (!analysis?.ok) return [];
+  return analysis.types.filter((type) => !(metadataCleaner.preserveColorProfile && type.id === 'icc'));
+}
+
+function metadataDetailSummary(analysis) {
+  if (!analysis?.ok) return '';
+  const format = String(analysis.format || '').toUpperCase();
+  const software = analysis.origin?.software ? ` · ${analysis.origin.software}` : '';
+  return `${analysis.width} × ${analysis.height} px · ${format} · ${analysis.detailCount.toLocaleString('pt-BR')} metadados${software}`;
+}
+
+function renderMetadataInspector() {
+  const item = metadataCleaner.items.find((candidate) => candidate.id === metadataCleaner.selectedItemId);
+  const analysis = item ? metadataCleaner.analysis.get(item.id) : null;
+  const ready = Boolean(item && analysis?.ok);
+  metadataElements.inspectorEmpty.classList.toggle('hidden', ready);
+  metadataElements.inspectorContent.classList.toggle('hidden', !ready);
+  if (!item) return;
+  if (!analysis) {
+    metadataElements.inspectorEmpty.querySelector('strong').textContent = 'Analisando a imagem…';
+    metadataElements.inspectorEmpty.querySelector('span').textContent = 'Os metadados aparecerão aqui.';
+    return;
+  }
+  if (!analysis.ok) {
+    metadataElements.inspectorEmpty.querySelector('strong').textContent = 'Análise indisponível';
+    metadataElements.inspectorEmpty.querySelector('span').textContent = analysis.error || 'Não foi possível ler os metadados.';
+    return;
+  }
+
+  metadataElements.inspectorName.textContent = item.name;
+  metadataElements.inspectorSummary.textContent = metadataDetailSummary(analysis);
+  metadataElements.totalBadge.textContent = `${analysis.detailCount.toLocaleString('pt-BR')} ${analysis.detailCount === 1 ? 'METADADO' : 'METADADOS'}`;
+
+  const health = analysis.metadataHealth;
+  metadataElements.health.classList.remove('missing', 'partial', 'complete');
+  metadataElements.health.classList.toggle('hidden', !health || health.status === 'complete');
+  if (health) {
+    metadataElements.health.classList.add(health.status);
+    metadataElements.healthLabel.textContent = health.label;
+    metadataElements.healthDetail.textContent = health.detail;
+  }
+
+  const ai = analysis.ai;
+  metadataElements.aiCard.classList.remove('detected', 'possible', 'unknown');
+  metadataElements.aiCard.classList.add(ai.status);
+  metadataElements.aiLabel.textContent = ai.label;
+  metadataElements.aiDetail.textContent = ai.generator ? `${ai.generator} · confiança ${ai.confidence}` : `confiança ${ai.confidence}`;
+  metadataElements.evidence.classList.toggle('hidden', !ai.evidence?.length);
+  metadataElements.evidence.innerHTML = ai.evidence?.length
+    ? `<strong>Evidências da origem</strong>${ai.evidence.map((evidence) => `<span>${escapeHtml(evidence)}</span>`).join('')}`
+    : '';
+
+  const location = analysis.origin?.location;
+  metadataElements.locationLabel.textContent = location ? `${location.latitude}, ${location.longitude}` : 'GPS não veio no arquivo';
+  metadataElements.locationDetail.textContent = location?.altitude ? `Altitude: ${location.altitude}` : 'O arquivo não contém coordenadas incorporadas';
+  const deviceParts = [analysis.origin?.device, analysis.origin?.lens].filter(Boolean);
+  metadataElements.deviceLabel.textContent = deviceParts.join(' · ') || 'Modelo não veio no arquivo';
+  metadataElements.dateDetail.textContent = analysis.origin?.capturedAt || (analysis.origin?.author ? `Autor: ${analysis.origin.author}` : 'O arquivo não contém dados da câmera');
+
+  const groupCounts = new Map();
+  for (const detail of analysis.details) groupCounts.set(detail.group, (groupCounts.get(detail.group) || 0) + 1);
+  if (metadataCleaner.groupFilter !== 'all' && !groupCounts.has(metadataCleaner.groupFilter)) metadataCleaner.groupFilter = 'all';
+  metadataElements.groupFilter.innerHTML = [
+    `<button class="${metadataCleaner.groupFilter === 'all' ? 'active' : ''}" data-metadata-group="all">Todos <span>${analysis.detailCount}</span></button>`,
+    ...[...groupCounts.entries()].map(([group, count]) => `<button class="${metadataCleaner.groupFilter === group ? 'active' : ''}" data-metadata-group="${escapeHtml(group)}">${escapeHtml(group)} <span>${count}</span></button>`)
+  ].join('');
+  metadataElements.groupFilter.querySelectorAll('[data-metadata-group]').forEach((button) => button.addEventListener('click', () => {
+    metadataCleaner.groupFilter = button.dataset.metadataGroup;
+    renderMetadataInspector();
+  }));
+
+  const query = metadataCleaner.search.trim().toLocaleLowerCase('pt-BR');
+  const visible = analysis.details.filter((detail) => {
+    if (metadataCleaner.groupFilter !== 'all' && detail.group !== metadataCleaner.groupFilter) return false;
+    return !query || `${detail.group} ${detail.name} ${detail.value}`.toLocaleLowerCase('pt-BR').includes(query);
+  });
+  const grouped = new Map();
+  for (const detail of visible) {
+    if (!grouped.has(detail.group)) grouped.set(detail.group, []);
+    grouped.get(detail.group).push(detail);
+  }
+  metadataElements.visibleCount.textContent = `${visible.length.toLocaleString('pt-BR')} ${visible.length === 1 ? 'item' : 'itens'}`;
+  metadataElements.details.innerHTML = visible.length ? [...grouped.entries()].map(([group, details]) => `
+    <section class="metadata-detail-group"><h4><span>${escapeHtml(group)}</span><small>${details.length}</small></h4>${details.map((detail) => `
+      <div class="metadata-detail-row"><div><strong>${escapeHtml(detail.name)}</strong>${detail.id ? `<small>${escapeHtml(detail.id)}</small>` : ''}</div><span title="${escapeHtml(detail.value)}">${escapeHtml(detail.value)}</span></div>`).join('')}
+    </section>`).join('') : '<div class="metadata-no-results">Nenhum metadado corresponde à pesquisa.</div>';
+}
+
+function renderMetadataQueue() {
+  if (metadataCleaner.completed) return;
+  const hasItems = metadataCleaner.items.length > 0;
+  metadataElements.dropZone.classList.toggle('hidden', hasItems);
+  metadataElements.queue.classList.toggle('hidden', !hasItems);
+  metadataElements.summary.classList.add('hidden');
+  metadataElements.start.disabled = !hasItems || metadataCleaner.running || metadataCleaner.analyzing;
+  metadataElements.clear.disabled = metadataCleaner.running;
+  metadataElements.addMore.disabled = metadataCleaner.running;
+  metadataElements.queueTitle.textContent = `${metadataCleaner.items.length.toLocaleString('pt-BR')} ${metadataCleaner.items.length === 1 ? 'imagem selecionada' : 'imagens selecionadas'}`;
+  const analyzed = metadataCleaner.items.filter((item) => metadataCleaner.analysis.get(item.id)?.ok);
+  const exposed = analyzed.filter((item) => removableMetadataTypes(metadataCleaner.analysis.get(item.id)).length).length;
+  metadataElements.queueSubtitle.textContent = metadataCleaner.analyzing
+    ? `Analisando dados ocultos… ${analyzed.length} de ${metadataCleaner.items.length}`
+    : `${exposed.toLocaleString('pt-BR')} ${exposed === 1 ? 'imagem contém dados removíveis' : 'imagens contêm dados removíveis'}`;
+  metadataElements.fileList.innerHTML = metadataCleaner.items.map((item) => {
+    const analysis = metadataCleaner.analysis.get(item.id);
+    const result = metadataCleaner.results.get(item.id);
+    let status = analysis ? 'Pronta para limpar' : 'Analisando';
+    let statusClass = analysis ? '' : 'working';
+    let detail = item.path;
+    if (analysis?.error) { status = 'Falhou na análise'; statusClass = 'error'; detail = analysis.error; }
+    if (analysis?.ok) detail = metadataDetailSummary(analysis);
+    if (result?.working) { status = 'Limpando'; statusClass = 'working'; }
+    else if (result?.ok) {
+      status = result.hadAiSignals && result.aiSignalsRemoved ? 'IA removida' : (result.alreadyClean ? 'Já protegida' : 'Limpa');
+      statusClass = 'success';
+      detail = result.hadAiSignals && result.aiSignalsRemoved
+        ? `${result.filenameAnonymized ? 'Nome revelador neutralizado; ' : ''}rastros de IA, software gerador e C2PA removidos e verificados`
+        : (result.alreadyClean ? 'Nenhum dado selecionado para remover' : `${result.removedTypes.join(', ')} removidos`);
+    }
+    else if (result?.error) { status = 'Falhou'; statusClass = 'error'; detail = result.error; }
+    const active = item.id === metadataCleaner.selectedItemId ? ' selected' : '';
+    return `<div class="file-row has-thumbnail metadata-row selectable${active}" data-item-id="${escapeHtml(item.id)}"><span class="file-thumb"><img data-path="${escapeHtml(item.path)}" alt="" loading="lazy"><span class="thumb-fallback">▧</span></span><div class="file-info"><div class="file-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div><div class="file-detail" title="${escapeHtml(detail)}">${escapeHtml(detail)}</div></div><div class="file-status ${statusClass}">${escapeHtml(status)}</div></div>`;
+  }).join('');
+  observeThumbnails(metadataElements.fileList);
+  metadataElements.fileList.querySelectorAll('[data-item-id]').forEach((row) => row.addEventListener('click', () => {
+    metadataCleaner.selectedItemId = row.dataset.itemId;
+    metadataCleaner.groupFilter = 'all';
+    metadataCleaner.search = '';
+    metadataElements.searchInput.value = '';
+    renderMetadataQueue();
+  }));
+  renderMetadataInspector();
+}
+
+async function addMetadataItems(items) {
+  const knownIds = new Set(metadataCleaner.items.map((item) => item.id));
+  addUniqueItems(metadataCleaner, items);
+  if (!metadataCleaner.selectedItemId && metadataCleaner.items[0]) metadataCleaner.selectedItemId = metadataCleaner.items[0].id;
+  const pending = metadataCleaner.items.filter((item) => !knownIds.has(item.id) && !metadataCleaner.analysis.has(item.id));
+  renderMetadataQueue();
+  if (!pending.length) return;
+  metadataCleaner.analyzing = true;
+  renderMetadataQueue();
+  try {
+    const analyses = await window.arc.inspectMetadata(pending);
+    for (const analysis of analyses) {
+      if (metadataCleaner.items.some((item) => item.id === analysis.id)) metadataCleaner.analysis.set(analysis.id, analysis);
+    }
+  } catch (error) {
+    for (const item of pending) metadataCleaner.analysis.set(item.id, { id: item.id, ok: false, error: error?.message || 'Não foi possível analisar a imagem.' });
+  } finally {
+    metadataCleaner.analyzing = false;
+    renderMetadataQueue();
+  }
+}
+
+async function chooseMetadataFiles(folder = false) {
+  await addMetadataItems(folder ? await window.arc.selectFolder() : await window.arc.selectFiles());
+}
+
+async function startMetadataCleaning() {
+  if (metadataCleaner.running || metadataCleaner.analyzing || !metadataCleaner.items.length) return;
+  metadataCleaner.running = true;
+  metadataCleaner.results.clear();
+  setMetadataBusy(true);
+  try {
+    const response = await window.arc.cleanMetadata({
+      items: metadataCleaner.items,
+      outputRoot: metadataCleaner.outputRoot,
+      preserveColorProfile: metadataCleaner.preserveColorProfile
+    });
+    metadataCleaner.batchPath = response.batchPath;
+    metadataCleaner.completed = true;
+    showMetadataSummary(response.results, response.batchPath);
+  } catch (error) {
+    window.alert(error?.message || 'Não foi possível limpar os metadados deste lote.');
+  } finally {
+    metadataCleaner.running = false;
+    setMetadataBusy(false);
+  }
+}
+
+function setMetadataBusy(busy) {
+  for (const element of [metadataElements.selectFiles, metadataElements.selectFolder, metadataElements.addMore, metadataElements.selectOutput, metadataElements.clear, metadataElements.colorProfileInput]) element.disabled = busy;
+  metadataElements.start.disabled = busy || !metadataCleaner.items.length || metadataCleaner.completed;
+  metadataElements.progressWrap.classList.toggle('hidden', !busy);
+  metadataElements.working.classList.toggle('hidden', !busy);
+  if (busy) { metadataElements.progressBar.style.width = '0%'; metadataElements.progressText.textContent = `0 de ${metadataCleaner.items.length}`; }
+  renderMetadataQueue();
+}
+
+function showMetadataSummary(results, batchPath) {
+  const successful = results.filter((result) => result.ok);
+  const failed = results.length - successful.length;
+  const alreadyClean = successful.filter((result) => result.alreadyClean).length;
+  const cleaned = successful.length - alreadyClean;
+  const aiRemoved = successful.filter((result) => result.hadAiSignals && result.aiSignalsRemoved).length;
+  metadataElements.queue.classList.add('hidden'); metadataElements.dropZone.classList.add('hidden'); metadataElements.summary.classList.remove('hidden'); metadataElements.working.classList.add('hidden');
+  metadataElements.cleanedCount.textContent = cleaned.toLocaleString('pt-BR');
+  metadataElements.alreadyCleanCount.textContent = aiRemoved.toLocaleString('pt-BR');
+  metadataElements.processedCount.textContent = successful.length.toLocaleString('pt-BR');
+  metadataElements.summaryText.textContent = failed
+    ? `${successful.length} imagens protegidas e ${failed} não puderam ser processadas.`
+    : `Tudo pronto. A limpeza foi verificada em ${successful.length.toLocaleString('pt-BR')} ${successful.length === 1 ? 'arquivo' : 'arquivos'}, sem alterar os originais.`;
+  metadataElements.summaryPath.textContent = batchPath; metadataElements.summaryPath.title = batchPath;
+}
+
+function resetMetadataCleaner() {
+  Object.assign(metadataCleaner, { items: [], batchPath: '', completed: false, analyzing: false, selectedItemId: '', groupFilter: 'all', search: '' });
+  metadataCleaner.results.clear(); metadataCleaner.analysis.clear();
+  metadataElements.searchInput.value = '';
+  metadataElements.progressWrap.classList.add('hidden'); metadataElements.working.classList.add('hidden');
+  renderMetadataQueue();
+}
+
 function wireDropZone(element, addCallback) {
   for (const eventName of ['dragenter', 'dragover']) element.addEventListener(eventName, (event) => { event.preventDefault(); element.classList.add('dragging'); });
   for (const eventName of ['dragleave', 'drop']) element.addEventListener(eventName, (event) => { event.preventDefault(); element.classList.remove('dragging'); });
@@ -428,9 +727,14 @@ function wireDropZone(element, addCallback) {
 $$('.tool-tab').forEach((button) => button.addEventListener('click', () => {
   const tool = button.dataset.tool;
   $$('.tool-tab').forEach((tab) => { const active = tab === button; tab.classList.toggle('active', active); tab.setAttribute('aria-pressed', String(active)); });
-  $('#compressor-view').classList.toggle('hidden', tool !== 'compressor'); $('#resizer-view').classList.toggle('hidden', tool !== 'resizer');
-  $('#brand-logo').src = tool === 'compressor' ? 'assets/logo-compressor.png' : 'assets/logo-resizer.png';
-  $('#brand-logo').alt = tool === 'compressor' ? 'ARC Image Compressor' : 'ARC Image Studio — Resizer';
+  $('#compressor-view').classList.toggle('hidden', tool !== 'compressor'); $('#resizer-view').classList.toggle('hidden', tool !== 'resizer'); $('#metadata-view').classList.toggle('hidden', tool !== 'metadata');
+  const logos = {
+    compressor: ['assets/logos/logo-image-compressor.png', 'ARC Image Compressor'],
+    resizer: ['assets/logos/logo-image-resizer.png', 'ARC Image Resizer'],
+    metadata: ['assets/logos/logo-metadata-editor.png', 'ARC Metadata Editor']
+  };
+  $('#brand-logo').src = logos[tool][0];
+  $('#brand-logo').alt = logos[tool][1];
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }));
 
@@ -442,6 +746,19 @@ resizeElements.selectFiles.addEventListener('click', () => chooseResizeFiles(fal
 resizeElements.selectOutput.addEventListener('click', () => chooseOutput(resizer, resizeElements.outputPath)); resizeElements.start.addEventListener('click', startResize); resizeElements.clear.addEventListener('click', resetResize); resizeElements.newBatch.addEventListener('click', resetResize); resizeElements.openOutput.addEventListener('click', () => window.arc.showOutput(resizer.batchPath || resizer.outputRoot));
 resizeElements.previewRefresh.addEventListener('click', () => refreshResizePreview());
 wireDropZone(resizeElements.dropZone, addResizeItems);
+
+metadataElements.selectFiles.addEventListener('click', () => chooseMetadataFiles(false)); metadataElements.addMore.addEventListener('click', () => chooseMetadataFiles(false)); metadataElements.selectFolder.addEventListener('click', () => chooseMetadataFiles(true));
+metadataElements.selectOutput.addEventListener('click', () => chooseOutput(metadataCleaner, metadataElements.outputPath)); metadataElements.start.addEventListener('click', startMetadataCleaning); metadataElements.clear.addEventListener('click', resetMetadataCleaner); metadataElements.newBatch.addEventListener('click', resetMetadataCleaner); metadataElements.openOutput.addEventListener('click', () => window.arc.showOutput(metadataCleaner.batchPath || metadataCleaner.outputRoot));
+metadataElements.colorProfileInput.addEventListener('change', () => {
+  metadataCleaner.preserveColorProfile = metadataElements.colorProfileInput.checked;
+  metadataElements.colorProfile.classList.toggle('active', metadataCleaner.preserveColorProfile);
+  metadataElements.colorProfile.querySelector('small').textContent = metadataCleaner.preserveColorProfile
+    ? 'ICC mantido · EXIF e rastros de IA removidos'
+    : 'limpeza total · inclusive perfil de cores ICC';
+  renderMetadataQueue();
+});
+metadataElements.searchInput.addEventListener('input', () => { metadataCleaner.search = metadataElements.searchInput.value; renderMetadataInspector(); });
+wireDropZone(metadataElements.dropZone, addMetadataItems);
 
 $$('.resize-mode-tab').forEach((button) => button.addEventListener('click', () => setResizeMode(button.dataset.resizeMode)));
 resizeElements.ratioLockInput.addEventListener('change', () => setRatioLock(resizeElements.ratioLockInput.checked)); resizeElements.templateRatioLockInput.addEventListener('change', () => setRatioLock(resizeElements.templateRatioLockInput.checked));
@@ -455,6 +772,24 @@ window.arc.onProgress((progress) => { compressor.results.set(progress.id, progre
 window.arc.onStarted(({ id }) => { if (!compressor.completed) { compressor.results.set(id, { working: true }); renderCompressorQueue(); } });
 window.arc.onResizeProgress((progress) => { resizer.results.set(progress.id, progress); const done = progress.index + 1; resizeElements.progressBar.style.width = `${done / progress.total * 100}%`; resizeElements.progressText.textContent = `${done} de ${progress.total}`; if (!resizer.completed) renderResizeQueue(); });
 window.arc.onResizeStarted(({ id }) => { if (!resizer.completed) { resizer.results.set(id, { working: true }); renderResizeQueue(); } });
+window.arc.onMetadataProgress((progress) => { metadataCleaner.results.set(progress.id, progress); const done = progress.index + 1; metadataElements.progressBar.style.width = `${done / progress.total * 100}%`; metadataElements.progressText.textContent = `${done} de ${progress.total}`; if (!metadataCleaner.completed) renderMetadataQueue(); });
+window.arc.onMetadataStarted(({ id }) => { if (!metadataCleaner.completed) { metadataCleaner.results.set(id, { working: true }); renderMetadataQueue(); } });
+window.arc.onUpdateState(renderUpdateState);
 
-window.arc.defaultOutput().then((outputPath) => { compressor.outputRoot = outputPath; resizer.outputRoot = outputPath; compressorElements.outputPath.value = outputPath; resizeElements.outputPath.value = outputPath; });
+updateElements.button.addEventListener('click', () => {
+  if (updateUiState.status === 'available') window.arc.installUpdate();
+  else window.arc.checkForUpdates();
+});
+updateElements.action.addEventListener('click', () => {
+  if (updateUiState.status === 'available') window.arc.installUpdate();
+  else window.arc.checkForUpdates();
+});
+updateElements.dismiss.addEventListener('click', () => {
+  dismissedUpdateStatus = updateUiState.status;
+  updateElements.notice.classList.add('hidden');
+});
+
+window.arc.defaultOutput().then((outputPath) => { compressor.outputRoot = outputPath; resizer.outputRoot = outputPath; metadataCleaner.outputRoot = outputPath; compressorElements.outputPath.value = outputPath; resizeElements.outputPath.value = outputPath; metadataElements.outputPath.value = outputPath; });
+window.arc.getUpdateState().then(renderUpdateState);
+metadataElements.colorProfile.classList.add('active');
 renderPresets(); updateResizeTarget();
