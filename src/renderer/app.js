@@ -728,13 +728,10 @@ $$('.tool-tab').forEach((button) => button.addEventListener('click', () => {
   const tool = button.dataset.tool;
   $$('.tool-tab').forEach((tab) => { const active = tab === button; tab.classList.toggle('active', active); tab.setAttribute('aria-pressed', String(active)); });
   $('#compressor-view').classList.toggle('hidden', tool !== 'compressor'); $('#resizer-view').classList.toggle('hidden', tool !== 'resizer'); $('#metadata-view').classList.toggle('hidden', tool !== 'metadata');
-  const logos = {
-    compressor: ['assets/logos/logo-image-compressor.png', 'ARC Image Compressor'],
-    resizer: ['assets/logos/logo-image-resizer.png', 'ARC Image Resizer'],
-    metadata: ['assets/logos/logo-metadata-editor.png', 'ARC Metadata Editor']
-  };
-  $('#brand-logo').src = logos[tool][0];
-  $('#brand-logo').alt = logos[tool][1];
+  const toolNames = { compressor: 'Image Compressor', resizer: 'Image Resizer', metadata: 'Metadata Editor' };
+  const brandName = $('#brand-name');
+  brandName.textContent = toolNames[tool];
+  brandName.classList.remove('swap'); void brandName.offsetWidth; brandName.classList.add('swap');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }));
 

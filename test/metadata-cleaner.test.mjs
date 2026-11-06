@@ -79,7 +79,7 @@ test('limpa PNG sem perda de dimensões', async (t) => {
 test('remove e verifica rastros de IA e Content Credentials de PNG', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'arc-ai-metadata-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const source = path.resolve('src/renderer/assets/logos/logo-image-compressor.png');
+  const source = path.resolve('src/renderer/assets/logos/logo.png');
   const before = await inspectImageMetadata(source);
 
   assert.notEqual(before.ai.status, 'unknown');
@@ -87,7 +87,7 @@ test('remove e verifica rastros de IA e Content Credentials de PNG', async (t) =
 
   const result = await cleanMetadataImage({
     sourcePath: source,
-    relativePath: 'logo-image-compressor.png',
+    relativePath: 'logo.png',
     outputRoot: root,
     preserveColorProfile: true
   });
