@@ -109,7 +109,7 @@ const updateElements = {
   kicker: $('#update-notice-kicker'), title: $('#update-notice-title'), detail: $('#update-notice-detail'),
   progress: $('#update-progress'), progressBar: $('#update-progress-bar'), action: $('#update-action'), dismiss: $('#update-dismiss')
 };
-let updateUiState = { status: 'idle', currentVersion: '2.3.0', availableVersion: '', percent: 0, showNotice: false };
+let updateUiState = { status: 'idle', currentVersion: '2.3.1', availableVersion: '', percent: 0, showNotice: false };
 let dismissedUpdateStatus = '';
 
 function renderUpdateState(state) {
