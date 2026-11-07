@@ -167,7 +167,7 @@ const updateElements = {
   kicker: $('#update-notice-kicker'), title: $('#update-notice-title'), detail: $('#update-notice-detail'),
   progress: $('#update-progress'), progressBar: $('#update-progress-bar'), action: $('#update-action'), dismiss: $('#update-dismiss')
 };
-let updateUiState = { status: 'idle', currentVersion: '2.5.0', availableVersion: '', percent: 0, showNotice: false };
+let updateUiState = { status: 'idle', currentVersion: '2.6.0', availableVersion: '', percent: 0, showNotice: false };
 let dismissedUpdateStatus = '';
 
 function renderUpdateState(state) {
@@ -194,29 +194,29 @@ function renderUpdateState(state) {
   updateElements.action.disabled = !['available', 'error'].includes(status);
 
   if (status === 'available') {
-    updateElements.kicker.textContent = 'ATUALIZAÇÃO DISPONÍVEL';
+    updateElements.kicker.textContent = 'Atualização disponível';
     updateElements.title.textContent = `ARC Image Studio v${availableVersion}`;
     updateElements.detail.textContent = 'Um clique baixa, substitui a versão atual e abre o aplicativo novamente.';
     updateElements.action.textContent = 'Atualizar agora';
   } else if (status === 'downloading') {
-    updateElements.kicker.textContent = 'BAIXANDO ATUALIZAÇÃO';
+    updateElements.kicker.textContent = 'Baixando atualização';
     updateElements.title.textContent = `${Math.round(percent)}% concluído`;
     updateElements.detail.textContent = updateUiState.total ? `${formatBytes(updateUiState.transferred)} de ${formatBytes(updateUiState.total)}` : message;
   } else if (status === 'installing') {
-    updateElements.kicker.textContent = 'TUDO PRONTO';
+    updateElements.kicker.textContent = 'Tudo pronto';
     updateElements.title.textContent = 'Instalando e reiniciando…';
     updateElements.detail.textContent = 'O aplicativo abrirá novamente em instantes.';
   } else if (status === 'error') {
-    updateElements.kicker.textContent = 'ATUALIZAÇÃO NÃO CONCLUÍDA';
+    updateElements.kicker.textContent = 'Atualização não concluída';
     updateElements.title.textContent = 'Não foi possível atualizar';
     updateElements.detail.textContent = message;
     updateElements.action.textContent = 'Tentar novamente';
   } else if (status === 'up-to-date') {
-    updateElements.kicker.textContent = 'APLICATIVO ATUALIZADO';
+    updateElements.kicker.textContent = 'Aplicativo atualizado';
     updateElements.title.textContent = `Você já está na versão ${currentVersion}`;
     updateElements.detail.textContent = message;
   } else if (status === 'development') {
-    updateElements.kicker.textContent = 'MODO DE DESENVOLVIMENTO';
+    updateElements.kicker.textContent = 'Modo de desenvolvimento';
     updateElements.title.textContent = 'Atualizador disponível no instalador';
     updateElements.detail.textContent = message;
   }
@@ -376,10 +376,12 @@ function renderCompressorQueue() {
   compressorElements.clear.disabled = compressor.running;
   compressorElements.addMore.disabled = compressor.running;
   compressorElements.queueTitle.textContent = `${compressor.items.length.toLocaleString('pt-BR')} ${compressor.items.length === 1 ? 'imagem selecionada' : 'imagens selecionadas'}`;
-  compressorElements.queueSubtitle.textContent = `Tamanho total: ${formatBytes(compressor.items.reduce((sum, item) => sum + item.size, 0))}`;
+  const totalBytes = compressor.items.reduce((sum, item) => sum + item.size, 0);
+  compressorElements.queueSubtitle.textContent = `Tamanho total: ${formatBytes(totalBytes)}`;
+  updateCompressorSummary(totalBytes);
   compressorElements.fileList.innerHTML = compressor.items.map((item) => {
     const result = compressor.results.get(item.id);
-    let status = 'Na fila', statusClass = '', size = formatBytes(item.size), detail = item.path;
+    let status = 'Na fila', statusClass = '', size = formatBytes(item.size), detail = shortPath(item.path);
     if (result?.working) { status = 'Otimizando'; statusClass = 'working'; }
     else if (result?.ok) { status = result.savedBytes > 0 ? `−${result.savedPercent.toFixed(1)}%` : 'Já otimizada'; statusClass = 'success'; size = `${formatBytes(result.originalBytes)} → ${formatBytes(result.optimizedBytes)}`; detail = result.method; }
     else if (result?.error) { status = 'Falhou'; statusClass = 'error'; detail = result.error; }
@@ -388,15 +390,134 @@ function renderCompressorQueue() {
   observeThumbnails(compressorElements.fileList);
 }
 
-function fileRow(item, detail, value, status, statusClass, options = {}) {
-  const thumbnail = options.thumbnail
-    ? `<span class="file-thumb"><img data-path="${escapeHtml(item.path)}"${options.previewMode ? ` data-preview-mode="${escapeHtml(options.previewMode)}"` : ''} alt="" loading="lazy"><span class="thumb-fallback">▧</span></span>`
-    : '';
-  const activeClass = options.active ? ' selected' : '';
-  const extraClass = options.className ? ` ${escapeHtml(options.className)}` : '';
-  const itemId = options.selectable ? ` data-item-id="${escapeHtml(item.id)}"` : '';
-  return `<div class="file-row${options.thumbnail ? ' has-thumbnail' : ''}${options.selectable ? ' selectable' : ''}${extraClass}${activeClass}"${itemId}>${thumbnail}<div class="file-info"><div class="file-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div><div class="file-detail" title="${escapeHtml(detail)}">${escapeHtml(detail)}</div></div><div class="file-size">${escapeHtml(value)}</div><div class="file-status ${statusClass}">${escapeHtml(status)}</div></div>`;
+const compressorLevelCopy = {
+  lossless: { label: 'Sem perda', note: 'Reorganiza os dados do arquivo sem recodificar a imagem. Os pixels permanecem idênticos.' },
+  compact: { label: 'Redução forte', note: 'Recodifica com perda visual mínima para reduzir ainda mais o tamanho do arquivo.' }
+};
+
+function updateCompressorSummary(totalBytes = compressor.items.reduce((sum, item) => sum + item.size, 0)) {
+  const level = $('input[name="level"]:checked')?.value || 'lossless';
+  const count = compressor.items.length;
+  $('#level-note').textContent = compressorLevelCopy[level].note;
+  $('#compressor-target-label').textContent = compressorLevelCopy[level].label;
+  $('#compressor-target-detail').textContent = count
+    ? `${count.toLocaleString('pt-BR')} ${count === 1 ? 'imagem' : 'imagens'} · ${formatBytes(totalBytes)}`
+    : 'Nenhuma imagem selecionada';
 }
+
+const THUMB_ICON = '<svg class="i" aria-hidden="true"><use href="#i-image"/></svg>';
+
+function thumbMarkup(item, options = {}) {
+  const image = options.thumbnail
+    ? `<img data-path="${escapeHtml(item.path)}"${options.previewMode ? ` data-preview-mode="${escapeHtml(options.previewMode)}"` : ''} alt="" loading="lazy">`
+    : '';
+  return `<span class="file-thumb">${THUMB_ICON}${image}</span>`;
+}
+
+/* Folder hint shown under the file name: the last two folders, never the whole path. */
+function shortPath(filePath = '') {
+  const parts = String(filePath).split(/[\\/]/).filter(Boolean);
+  parts.pop();
+  const tail = parts.slice(-2).join(' › ');
+  return tail ? `${parts.length > 2 ? '… › ' : ''}${tail}` : String(filePath);
+}
+
+function rowAttributes(item, options = {}) {
+  const classes = ['file-row', options.selectable && 'selectable', options.className, options.active && 'selected'].filter(Boolean).join(' ');
+  const selection = options.selectable ? ` data-item-id="${escapeHtml(item.id)}" tabindex="0" role="option" aria-selected="${Boolean(options.active)}"` : '';
+  return `class="${classes}"${selection}`;
+}
+
+function fileRow(item, detail, value, status, statusClass, options = {}) {
+  const compact = Boolean(options.compact);
+  const hideStatus = compact && !statusClass && status === 'Na fila';
+  const statusMarkup = hideStatus ? '<span></span>' : `<div class="file-status ${statusClass}" title="${escapeHtml(status)}"><span>${escapeHtml(status)}</span></div>`;
+  const sizeMarkup = compact ? '' : `<div class="file-size">${escapeHtml(value)}</div>`;
+  return `<div ${rowAttributes(item, options)}>${thumbMarkup(item, options)}<div class="file-info"><div class="file-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div><div class="file-detail" title="${escapeHtml(detail)}">${escapeHtml(detail)}</div></div>${sizeMarkup}${statusMarkup}</div>`;
+}
+
+/* Lists are re-rendered often (progress, previews); keep keyboard focus on the same row across renders. */
+function captureListFocus(list) {
+  const id = list.contains(document.activeElement) ? document.activeElement.dataset?.itemId : '';
+  return () => { if (id) list.querySelector(`[data-item-id="${CSS.escape(id)}"]`)?.focus({ preventScroll: true }); };
+}
+
+/* One delegated listener per list instead of one per row: cheaper for big batches and keyboard-friendly. */
+function bindRowSelection(list, onSelect) {
+  const pick = (event) => {
+    const row = event.target.closest('[data-item-id]');
+    if (row && list.contains(row)) onSelect(row.dataset.itemId);
+  };
+  list.addEventListener('click', pick);
+  list.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); pick(event); return; }
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    const row = event.target.closest('[data-item-id]');
+    const sibling = row && (event.key === 'ArrowDown' ? row.nextElementSibling : row.previousElementSibling);
+    if (!sibling) return;
+    event.preventDefault();
+    sibling.focus();
+    sibling.click();
+  });
+}
+
+/* Coalesce high-frequency progress events into one render per frame. */
+const pendingRenders = new Set();
+const renderCost = new Map();
+function queueRender(render) {
+  if (pendingRenders.has(render)) return;
+  pendingRenders.add(render);
+  // Adaptive throttle: a render that costs N ms may use at most ~1/3 of the main thread, so huge batches stay responsive.
+  const wait = Math.min(450, (renderCost.get(render) || 0) * 2);
+  setTimeout(() => requestAnimationFrame(() => {
+    pendingRenders.delete(render);
+    const start = performance.now();
+    render();
+    renderCost.set(render, performance.now() - start);
+  }), wait);
+}
+
+/* ───────── Sliding "glass" selection (segmented controls, grids and lists share it) ───────── */
+function syncSeg(seg) {
+  const thumb = seg.querySelector(':scope > .seg-thumb');
+  if (!thumb) return;
+  const active = seg.querySelector(':scope > .seg-item.active') || seg.querySelector(':scope > .seg-item:has(input:checked)');
+  if (!active || !active.offsetWidth) { thumb.style.opacity = '0'; return; }
+  const first = thumb.dataset.ready !== '1';
+  if (first) thumb.classList.add('no-anim');
+  thumb.style.opacity = '';
+  thumb.style.width = `${active.offsetWidth}px`;
+  thumb.style.height = `${active.offsetHeight}px`;
+  thumb.style.transform = `translate(${active.offsetLeft}px, ${active.offsetTop}px)`;
+  if (first) { void thumb.offsetWidth; thumb.classList.remove('no-anim'); thumb.dataset.ready = '1'; }
+}
+
+const segObserver = new ResizeObserver((entries) => entries.forEach((entry) => syncSeg(entry.target)));
+function initSegments() {
+  $$('.seg').forEach((seg) => { segObserver.observe(seg); syncSeg(seg); });
+  const resync = (event) => { const seg = event.target.closest?.('.seg'); if (seg) requestAnimationFrame(() => syncSeg(seg)); };
+  document.addEventListener('click', resync);
+  document.addEventListener('change', resync);
+  document.fonts?.ready.then(() => $$('.seg').forEach(syncSeg));
+}
+
+function setRangeFill(input) {
+  const min = Number(input.min) || 0, max = Number(input.max) || 100;
+  input.style.setProperty('--fill', `${Math.max(0, Math.min(100, (Number(input.value) - min) / (max - min) * 100))}%`);
+}
+
+/* Light that follows the pointer on buttons */
+let lightFrame = 0;
+document.addEventListener('pointermove', (event) => {
+  const button = event.target.closest?.('.btn');
+  if (!button || lightFrame) return;
+  lightFrame = requestAnimationFrame(() => {
+    lightFrame = 0;
+    const box = button.getBoundingClientRect();
+    button.style.setProperty('--mx', `${event.clientX - box.left}px`);
+    button.style.setProperty('--my', `${event.clientY - box.top}px`);
+  });
+}, { passive: true });
 
 async function chooseCompressorFiles(folder = false) {
   addUniqueItems(compressor, folder ? await window.arc.selectFolder() : await window.arc.selectFiles());
@@ -465,21 +586,25 @@ function renderResizeQueue() {
   resizeElements.start.disabled = !hasItems || resizer.running; resizeElements.clear.disabled = resizer.running; resizeElements.addMore.disabled = resizer.running;
   resizeElements.queueTitle.textContent = `${resizer.items.length.toLocaleString('pt-BR')} ${resizer.items.length === 1 ? 'imagem selecionada' : 'imagens selecionadas'}`;
   resizeElements.queueSubtitle.textContent = `Tamanho total: ${formatBytes(resizer.items.reduce((sum, item) => sum + item.size, 0))}`;
+  const restoreFocus = captureListFocus(resizeElements.fileList);
   resizeElements.fileList.innerHTML = resizer.items.map((item) => {
     const result = resizer.results.get(item.id);
-    let status = 'Na fila', statusClass = '', value = targetText(), detail = item.path;
+    let status = 'Na fila', statusClass = '', value = targetText(), detail = `${formatBytes(item.size)} → ${value}`;
     if (result?.working) { status = 'Redimensionando'; statusClass = 'working'; }
     else if (result?.ok) { status = 'Pronta'; statusClass = 'success'; value = `${result.outputWidth} × ${result.outputHeight} px`; detail = `${result.originalWidth} × ${result.originalHeight} px → ${value}`; }
     else if (result?.error) { status = 'Falhou'; statusClass = 'error'; detail = result.error; value = '—'; }
-    return fileRow(item, detail, value, status, statusClass, { selectable: true, active: item.id === resizer.selectedItemId });
+    return fileRow(item, detail, value, status, statusClass, { thumbnail: true, compact: true, selectable: true, active: item.id === resizer.selectedItemId });
   }).join('');
-  resizeElements.fileList.querySelectorAll('[data-item-id]').forEach((row) => row.addEventListener('click', () => {
-    const item = resizer.items.find((candidate) => candidate.id === row.dataset.itemId);
-    if (!item || item.id === resizer.selectedItemId) return;
-    resizer.selectedItemId = item.id;
-    renderResizeQueue();
-    loadResizePreview(item, true);
-  }));
+  observeThumbnails(resizeElements.fileList);
+  restoreFocus();
+}
+
+function selectResizeItem(itemId) {
+  const item = resizer.items.find((candidate) => candidate.id === itemId);
+  if (!item || item.id === resizer.selectedItemId) return;
+  resizer.selectedItemId = item.id;
+  renderResizeQueue();
+  loadResizePreview(item, true);
 }
 
 async function loadResizePreview(item, syncDimensions = false) {
@@ -530,6 +655,7 @@ async function refreshResizePreview(item = resizer.items.find((candidate) => can
     resizeElements.previewPlaceholder.classList.add('hidden');
     resizeElements.previewMeta.textContent = `${metadata.width} × ${metadata.height} px → ${preview.outputWidth} × ${preview.outputHeight} px`;
     resizeElements.previewBadge.textContent = 'RESULTADO';
+    updateResizeResult(metadata, { width: preview.outputWidth, height: preview.outputHeight });
   } catch (error) {
     if (request !== resizePreviewRequest) return;
     resizeElements.previewMeta.textContent = error?.message || 'Preview indisponível';
@@ -540,6 +666,30 @@ async function refreshResizePreview(item = resizer.items.find((candidate) => can
       resizeElements.previewRefresh.disabled = false;
     }
   }
+}
+
+function updateResizeResult(original, output) {
+  const viz = $('#resize-result-viz');
+  const [originalBox, newBox] = viz.children;
+  viz.classList.toggle('is-empty', !original || !output);
+  if (!original || !output) {
+    $('#resize-result-original').textContent = '—';
+    $('#resize-result-new').textContent = '—';
+    $('#resize-result-delta').textContent = '—';
+    originalBox.style.width = originalBox.style.height = newBox.style.width = newBox.style.height = '0px';
+    return;
+  }
+  const fit = Math.min(84 / Math.max(original.width, output.width), 52 / Math.max(original.height, output.height));
+  originalBox.style.width = `${Math.round(original.width * fit)}px`;
+  originalBox.style.height = `${Math.round(original.height * fit)}px`;
+  newBox.style.width = `${Math.max(4, Math.round(output.width * fit))}px`;
+  newBox.style.height = `${Math.max(4, Math.round(output.height * fit))}px`;
+  const change = (output.width * output.height) / (original.width * original.height) - 1;
+  $('#resize-result-original').textContent = `${original.width} × ${original.height} px`;
+  $('#resize-result-new').textContent = `${output.width} × ${output.height} px`;
+  $('#resize-result-delta').textContent = Math.abs(change) < 0.0005
+    ? 'sem alteração'
+    : `${change > 0 ? '+' : '−'}${Math.abs(change * 100).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}%`;
 }
 
 function scheduleResizePreview(delay = 160) {
@@ -562,13 +712,18 @@ function targetText() {
 function updateResizeTarget() {
   resizeElements.targetLabel.textContent = targetText();
   resizeElements.targetDetail.textContent = resizer.mode === 'percentage' ? 'mantém a proporção original' : (resizer.lockRatio ? 'proporção preservada' : 'proporção livre');
-  if (!resizer.completed) renderResizeQueue();
+  if (!resizer.completed) queueRender(renderResizeQueue);
 }
 
 function setResizeMode(mode) {
   resizer.mode = mode;
   $$('.resize-mode-tab').forEach((button) => button.classList.toggle('active', button.dataset.resizeMode === mode));
-  $('#dimensions-panel').classList.toggle('hidden', mode !== 'dimensions'); $('#percentage-panel').classList.toggle('hidden', mode !== 'percentage'); $('#template-panel').classList.toggle('hidden', mode !== 'template');
+  for (const [id, name] of [['#dimensions-panel', 'dimensions'], ['#percentage-panel', 'percentage'], ['#template-panel', 'template']]) {
+    const panel = $(id);
+    const show = mode === name;
+    if (show && panel.classList.contains('hidden')) { panel.classList.remove('hidden'); panel.classList.remove('entering'); void panel.offsetWidth; panel.classList.add('entering'); }
+    else if (!show) panel.classList.add('hidden');
+  }
   resizeElements.modeHint.textContent = mode === 'dimensions' ? 'Informe largura e altura em pixels.' : mode === 'percentage' ? 'Reduza ou amplie mantendo as proporções.' : 'Escolha a rede e o formato desejado.';
   updateResizeTarget();
   scheduleResizePreview(0);
@@ -578,12 +733,13 @@ function setRatioLock(value) {
   resizer.lockRatio = value;
   resizeElements.ratioLockInput.checked = value;
   resizeElements.templateRatioLockInput.checked = value;
-  for (const control of [resizeElements.ratioLock, resizeElements.templateRatioLock]) {
-    control.classList.toggle('active', value);
-    const strong = control.querySelector('strong'), small = control.querySelector('small');
-    if (control === resizeElements.ratioLock) { strong.textContent = 'Bloquear proporção'; small.textContent = value ? 'ativado · evita deformações' : 'desativado · dimensões independentes'; }
-    else { strong.textContent = 'Preservar proporção'; small.textContent = value ? 'ativada · preenche sem deformar' : 'desativada · pode distorcer a imagem'; }
-  }
+  resizeElements.ratioLock.classList.toggle('active', value);
+  resizeElements.templateRatioLock.classList.toggle('active', value);
+  const caption = $('.lock-caption');
+  caption.querySelector('strong').textContent = value ? 'Proporção bloqueada' : 'Proporção livre';
+  caption.querySelector('small').textContent = value ? 'evita deformações' : 'largura e altura independentes';
+  resizeElements.ratioLock.title = value ? 'Desbloquear proporção' : 'Bloquear proporção';
+  resizeElements.templateRatioLock.querySelector('small').textContent = value ? 'ativada · preenche sem deformar' : 'desativada · pode distorcer a imagem';
   updateResizeTarget();
   scheduleResizePreview(0);
 }
@@ -601,9 +757,11 @@ function syncDimension(changed) {
 function renderPresets() {
   const list = presets[resizer.platform];
   if (!list.some((preset) => preset.id === resizer.presetId)) resizer.presetId = list[0].id;
-  resizeElements.presetGrid.innerHTML = list.map((preset) => `<button class="preset-card ${preset.id === resizer.presetId ? 'active' : ''}" data-preset="${preset.id}"><span class="preset-shape">${presetIcon(preset.kind)}</span><span><strong>${preset.name}</strong><small>${preset.width} × ${preset.height} px</small></span></button>`).join('');
-  $$('.preset-card').forEach((button) => button.addEventListener('click', () => { resizer.presetId = button.dataset.preset; renderPresets(); updateResizeTarget(); scheduleResizePreview(0); }));
+  const grid = resizeElements.presetGrid;
+  [...grid.children].forEach((child) => { if (!child.classList.contains('seg-thumb')) child.remove(); });
+  grid.insertAdjacentHTML('beforeend', list.map((preset) => `<button class="preset-card seg-item ${preset.id === resizer.presetId ? 'active' : ''}" type="button" data-preset="${preset.id}"><span class="preset-shape">${presetIcon(preset.kind)}</span><span><strong>${preset.name}</strong><small>${preset.width} × ${preset.height} px</small></span></button>`).join(''));
   updateResizeTarget();
+  syncSeg(grid);
 }
 
 function presetIcon(kind) {
@@ -661,7 +819,7 @@ function resetResize() {
   clearTimeout(resizePreviewTimer); resizePreviewRequest += 1;
   Object.assign(resizer, { items: [], batchPath: '', completed: false, selectedItemId: '' }); resizer.results.clear();
   resizeElements.previewImage.removeAttribute('src'); resizeElements.previewImage.classList.add('hidden'); resizeElements.previewPlaceholder.classList.remove('hidden');
-  resizeElements.previewName.textContent = 'Imagem selecionada'; resizeElements.previewMeta.textContent = 'Clique em um arquivo para visualizar'; resizeElements.previewBadge.textContent = 'RESULTADO'; resizeElements.previewRefresh.disabled = false;
+  resizeElements.previewName.textContent = 'Imagem selecionada'; resizeElements.previewMeta.textContent = 'Clique em um arquivo para visualizar'; resizeElements.previewBadge.textContent = 'RESULTADO'; resizeElements.previewRefresh.disabled = false; updateResizeResult(null, null);
   resizeElements.progressWrap.classList.add('hidden'); resizeElements.working.classList.add('hidden'); setActionState(resizeElements.start, 'idle'); renderResizeQueue();
 }
 
@@ -701,10 +859,10 @@ function updateConverterControls() {
   converterElements.targetLabel.textContent = qualityDisabled ? `${label} · sem perda` : `${label} · qualidade ${converter.quality}%`;
   converterElements.targetDetail.textContent = `${converter.preserveColorProfile ? 'perfil de cores preservado' : 'perfil de cores removido'} · ${converter.keepMetadata ? 'metadados copiados' : 'metadados removidos'}`;
   const previewStage = converterElements.previewImage.parentElement;
-  previewStage.style.background = converter.format === 'jpeg'
-    ? converter.background
-    : 'repeating-conic-gradient(#0c1428 0 25%, #091020 0 50%) 50% / 20px 20px';
+  converterElements.previewImage.style.background = converter.format === 'jpeg' ? converter.background : '';
   $$('.converter-format-card').forEach((card) => card.classList.toggle('active', card.dataset.converterFormat === converter.format));
+  setRangeFill(converterElements.qualityRange);
+  syncSeg($('.converter-format-grid'));
 }
 
 async function loadConverterPreview(item) {
@@ -744,23 +902,27 @@ function renderConverterQueue() {
   converterElements.addMore.disabled = converter.running;
   converterElements.queueTitle.textContent = `${converter.items.length.toLocaleString('pt-BR')} ${converter.items.length === 1 ? 'imagem selecionada' : 'imagens selecionadas'}`;
   converterElements.queueSubtitle.textContent = `${formatBytes(converter.items.reduce((sum, item) => sum + item.size, 0))} de entrada · saída em ${converterFormatLabels[converter.format]}`;
+  const restoreFocus = captureListFocus(converterElements.fileList);
   converterElements.fileList.innerHTML = converter.items.map((item) => {
     const result = converter.results.get(item.id);
-    let status = 'Na fila', statusClass = '', value = `→ ${converterFormatLabels[converter.format]}`, detail = item.path;
+    let status = 'Na fila', statusClass = '', value = `→ ${converterFormatLabels[converter.format]}`, detail = `${formatBytes(item.size)} → ${converterFormatLabels[converter.format]}`;
     if (result?.working) { status = 'Convertendo'; statusClass = 'working'; }
-    else if (result?.ok) { status = 'Convertida'; statusClass = 'success'; value = `${formatBytes(result.originalBytes)} → ${formatBytes(result.outputBytes)}`; detail = `${result.inputFormat} convertido para ${result.outputFormat}`; }
+    else if (result?.ok) { status = 'Convertida'; statusClass = 'success'; value = `${formatBytes(result.originalBytes)} → ${formatBytes(result.outputBytes)}`; detail = `${formatBytes(result.originalBytes)} → ${formatBytes(result.outputBytes)} · ${result.outputFormat}`; }
     else if (result?.error) { status = 'Falhou'; statusClass = 'error'; detail = result.error; }
     return fileRow(item, detail, value, status, statusClass, {
-      thumbnail: true, previewMode: 'converter', selectable: true, active: item.id === converter.selectedItemId, className: 'converter-row'
+      thumbnail: true, compact: true, previewMode: 'converter', selectable: true, active: item.id === converter.selectedItemId, className: 'converter-row'
     });
   }).join('');
   observeThumbnails(converterElements.fileList);
-  converterElements.fileList.querySelectorAll('[data-item-id]').forEach((row) => row.addEventListener('click', () => {
-    converter.selectedItemId = row.dataset.itemId;
-    renderConverterQueue();
-    loadConverterPreview(converter.items.find((item) => item.id === converter.selectedItemId));
-  }));
+  restoreFocus();
   updateConverterControls();
+}
+
+function selectConverterItem(itemId) {
+  if (!itemId || itemId === converter.selectedItemId) return;
+  converter.selectedItemId = itemId;
+  renderConverterQueue();
+  loadConverterPreview(converter.items.find((item) => item.id === converter.selectedItemId));
 }
 
 async function addConverterItems(items) {
@@ -830,7 +992,9 @@ function renameOptions() {
 function updateRenamerControls() {
   const originalMode = renamer.outputMode === 'original';
   $$('.renamer-mode-card').forEach((card) => card.classList.toggle('active', card.dataset.renameMode === renamer.outputMode));
+  const warningWasHidden = renamerElements.originalWarning.classList.contains('hidden');
   renamerElements.originalWarning.classList.toggle('hidden', !originalMode);
+  if (originalMode && warningWasHidden) requestAnimationFrame(() => renamerElements.originalWarning.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
   renamerElements.settingsBar.classList.toggle('original-mode', originalMode);
   renamerElements.selectOutput.disabled = renamer.running || originalMode;
   renamerElements.outputPath.disabled = originalMode;
@@ -865,8 +1029,9 @@ function renderRenamerQueue() {
     else if (result?.ok) { status = result.changed ? 'Renomeado' : 'Mantido'; statusClass = 'success'; }
     else if (result?.error) { status = 'Falhou'; statusClass = 'error'; }
     const newName = result?.newName || plan?.newName || 'Calculando…';
-    const conflictDetail = plan?.conflictAdjusted ? 'Conflito detectado e resolvido no preview' : item.path;
-    return `<div class="file-row has-thumbnail renamer-row"><span class="file-thumb"><img data-path="${escapeHtml(item.path)}" data-preview-mode="converter" alt="" loading="lazy"><span class="thumb-fallback">▧</span></span><div class="file-info"><div class="file-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div><div class="file-detail" title="${escapeHtml(conflictDetail)}">${escapeHtml(conflictDetail)}</div></div><div class="rename-result" title="${escapeHtml(newName)}"><span>${escapeHtml(newName)}</span></div><div class="file-status ${statusClass}">${escapeHtml(status)}</div></div>`;
+    const resultClass = !plan && !result ? 'calculating' : (plan && !plan.changed && !result?.changed ? 'unchanged' : '');
+    const conflictNote = plan?.conflictAdjusted ? '<small>conflito resolvido</small>' : '';
+    return `<div class="file-row renamer-row">${thumbMarkup(item, { thumbnail: true, previewMode: 'converter' })}<div class="file-info"><div class="file-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div><div class="file-detail" title="${escapeHtml(item.path)}">${escapeHtml(shortPath(item.path))}</div></div><span class="rename-arrow" aria-hidden="true"><svg class="i"><use href="#i-arrow-right"/></svg></span><div class="rename-result ${resultClass}" title="${escapeHtml(newName)}">${escapeHtml(newName)}${conflictNote}</div><div class="file-status ${statusClass}">${escapeHtml(status)}</div></div>`;
   }).join('');
   observeThumbnails(renamerElements.fileList);
   updateRenamerControls();
@@ -997,7 +1162,7 @@ function renderMetadataInspector() {
 
   metadataElements.inspectorName.textContent = item.name;
   metadataElements.inspectorSummary.textContent = metadataDetailSummary(analysis);
-  metadataElements.totalBadge.textContent = `${analysis.detailCount.toLocaleString('pt-BR')} ${analysis.detailCount === 1 ? 'METADADO' : 'METADADOS'}`;
+  metadataElements.totalBadge.textContent = `${analysis.detailCount.toLocaleString('pt-BR')} ${analysis.detailCount === 1 ? 'metadado' : 'metadados'}`;
 
   const health = analysis.metadataHealth;
   metadataElements.health.classList.remove('missing', 'partial', 'complete');
@@ -1069,14 +1234,15 @@ function renderMetadataQueue() {
   metadataElements.queueSubtitle.textContent = metadataCleaner.analyzing
     ? `Analisando dados ocultos… ${analyzed.length} de ${metadataCleaner.items.length}`
     : `${exposed.toLocaleString('pt-BR')} ${exposed === 1 ? 'imagem contém dados removíveis' : 'imagens contêm dados removíveis'}`;
+  const restoreFocus = captureListFocus(metadataElements.fileList);
   metadataElements.fileList.innerHTML = metadataCleaner.items.map((item) => {
     const analysis = metadataCleaner.analysis.get(item.id);
     const result = metadataCleaner.results.get(item.id);
     let status = analysis ? 'Pronta para limpar' : 'Analisando';
     let statusClass = analysis ? '' : 'working';
-    let detail = item.path;
+    let detail = shortPath(item.path);
     if (analysis?.error) { status = 'Falhou na análise'; statusClass = 'error'; detail = analysis.error; }
-    if (analysis?.ok) detail = metadataDetailSummary(analysis);
+    if (analysis?.ok) detail = `${analysis.width} × ${analysis.height} px · ${String(analysis.format || '').toUpperCase()}`;
     if (result?.working) { status = 'Limpando'; statusClass = 'working'; }
     else if (result?.ok) {
       status = result.hadAiSignals && result.aiSignalsRemoved ? 'IA removida' : (result.alreadyClean ? 'Já protegida' : 'Limpa');
@@ -1086,18 +1252,23 @@ function renderMetadataQueue() {
         : (result.alreadyClean ? 'Nenhum dado selecionado para remover' : `${result.removedTypes.join(', ')} removidos`);
     }
     else if (result?.error) { status = 'Falhou'; statusClass = 'error'; detail = result.error; }
-    const active = item.id === metadataCleaner.selectedItemId ? ' selected' : '';
-    return `<div class="file-row has-thumbnail metadata-row selectable${active}" data-item-id="${escapeHtml(item.id)}"><span class="file-thumb"><img data-path="${escapeHtml(item.path)}" alt="" loading="lazy"><span class="thumb-fallback">▧</span></span><div class="file-info"><div class="file-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div><div class="file-detail" title="${escapeHtml(detail)}">${escapeHtml(detail)}</div></div><div class="file-status ${statusClass}">${escapeHtml(status)}</div></div>`;
+    if (analysis?.ok && !result) { const exposed = removableMetadataTypes(analysis).length > 0; status = exposed ? 'Com dados' : 'Sem dados'; statusClass = exposed ? 'warn' : ''; }
+    return fileRow(item, detail, '', status, statusClass, {
+      thumbnail: true, compact: true, selectable: true, active: item.id === metadataCleaner.selectedItemId, className: 'metadata-row'
+    });
   }).join('');
   observeThumbnails(metadataElements.fileList);
-  metadataElements.fileList.querySelectorAll('[data-item-id]').forEach((row) => row.addEventListener('click', () => {
-    metadataCleaner.selectedItemId = row.dataset.itemId;
-    metadataCleaner.groupFilter = 'all';
-    metadataCleaner.search = '';
-    metadataElements.searchInput.value = '';
-    renderMetadataQueue();
-  }));
+  restoreFocus();
   renderMetadataInspector();
+}
+
+function selectMetadataItem(itemId) {
+  if (!itemId || itemId === metadataCleaner.selectedItemId) return;
+  metadataCleaner.selectedItemId = itemId;
+  metadataCleaner.groupFilter = 'all';
+  metadataCleaner.search = '';
+  metadataElements.searchInput.value = '';
+  renderMetadataQueue();
 }
 
 async function addMetadataItems(items) {
@@ -1190,12 +1361,12 @@ function wireDropZone(element, addCallback, pathLoader = (paths) => window.arc.a
   for (const eventName of ['dragenter', 'dragover']) element.addEventListener(eventName, (event) => { event.preventDefault(); element.classList.add('dragging'); });
   for (const eventName of ['dragleave', 'drop']) element.addEventListener(eventName, (event) => { event.preventDefault(); element.classList.remove('dragging'); });
   element.addEventListener('click', (event) => {
-    if (!event.target.closest('button')) element.querySelector('.button.primary')?.click();
+    if (!event.target.closest('button')) element.querySelector('.btn-primary')?.click();
   });
   element.addEventListener('keydown', (event) => {
     if (event.target !== element || !['Enter', ' '].includes(event.key)) return;
     event.preventDefault();
-    element.querySelector('.button.primary')?.click();
+    element.querySelector('.btn-primary')?.click();
   });
   element.addEventListener('drop', async (event) => {
     const paths = [...event.dataTransfer.files].map((file) => window.arc.getPathForFile(file)).filter(Boolean);
@@ -1217,15 +1388,21 @@ toolTabs.forEach((button, index) => {
     toolTabs[nextIndex].focus();
   });
   button.addEventListener('click', () => {
-  const tool = button.dataset.tool;
-  toolTabs.forEach((tab) => { const active = tab === button; tab.classList.toggle('active', active); tab.setAttribute('aria-pressed', String(active)); tab.tabIndex = active ? 0 : -1; });
-  $('#compressor-view').classList.toggle('hidden', tool !== 'compressor'); $('#resizer-view').classList.toggle('hidden', tool !== 'resizer'); $('#converter-view').classList.toggle('hidden', tool !== 'converter'); $('#renamer-view').classList.toggle('hidden', tool !== 'renamer'); $('#metadata-view').classList.toggle('hidden', tool !== 'metadata');
-  const toolNames = { compressor: 'Image Compressor', resizer: 'Image Resizer', converter: 'Image Converter', renamer: 'Batch Renamer', metadata: 'Metadata Editor' };
-  const brandName = $('#brand-name');
-  brandName.textContent = toolNames[tool];
-  brandName.classList.remove('swap'); void brandName.offsetWidth; brandName.classList.add('swap');
-  window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    const tool = button.dataset.tool;
+    if (button.classList.contains('active')) return;
+    toolTabs.forEach((tab) => { const active = tab === button; tab.classList.toggle('active', active); tab.setAttribute('aria-selected', String(active)); tab.tabIndex = active ? 0 : -1; });
+    for (const view of $$('.tool-view')) {
+      const show = view.id === `${tool}-view`;
+      view.classList.toggle('hidden', !show);
+      if (show) { view.classList.remove('entering'); void view.offsetWidth; view.classList.add('entering'); }
+    }
   });
+});
+// Ctrl/Cmd + 1…5 jump between tools
+document.addEventListener('keydown', (event) => {
+  if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
+  const index = Number(event.key) - 1;
+  if (index >= 0 && index < toolTabs.length) { event.preventDefault(); toolTabs[index].click(); }
 });
 
 compressorElements.selectFiles.addEventListener('click', () => chooseCompressorFiles(false)); compressorElements.addMore.addEventListener('click', () => chooseCompressorFiles(false)); compressorElements.selectFolder.addEventListener('click', () => chooseCompressorFiles(true));
@@ -1236,6 +1413,16 @@ resizeElements.selectFiles.addEventListener('click', () => chooseResizeFiles(fal
 resizeElements.selectOutput.addEventListener('click', () => chooseOutput(resizer, resizeElements.outputPath)); resizeElements.start.addEventListener('click', startResize); resizeElements.clear.addEventListener('click', resetResize); resizeElements.newBatch.addEventListener('click', resetResize); resizeElements.openOutput.addEventListener('click', () => window.arc.showOutput(resizer.batchPath || resizer.outputRoot));
 resizeElements.previewRefresh.addEventListener('click', () => refreshResizePreview());
 wireDropZone(resizeElements.dropZone, addResizeItems);
+bindRowSelection(resizeElements.fileList, selectResizeItem);
+bindRowSelection(converterElements.fileList, selectConverterItem);
+bindRowSelection(metadataElements.fileList, selectMetadataItem);
+resizeElements.presetGrid.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-preset]');
+  if (!button) return;
+  resizer.presetId = button.dataset.preset;
+  renderPresets(); scheduleResizePreview(0);
+});
+$$('input[name="level"]').forEach((radio) => radio.addEventListener('change', () => updateCompressorSummary()));
 
 converterElements.selectFiles.addEventListener('click', () => chooseConverterFiles(false)); converterElements.addMore.addEventListener('click', () => chooseConverterFiles(false)); converterElements.selectFolder.addEventListener('click', () => chooseConverterFiles(true));
 converterElements.selectOutput.addEventListener('click', () => chooseOutput(converter, converterElements.outputPath)); converterElements.start.addEventListener('click', startConversion); converterElements.clear.addEventListener('click', resetConverter); converterElements.newBatch.addEventListener('click', resetConverter); converterElements.openOutput.addEventListener('click', () => window.arc.showOutput(converter.batchPath || converter.outputRoot));
@@ -1245,8 +1432,7 @@ $$('.converter-format-card').forEach((button) => button.addEventListener('click'
   if (!['webp', 'avif'].includes(converter.format)) converter.lossless = false;
   updateConverterControls(); renderConverterQueue();
 }));
-converterElements.qualityRange.addEventListener('input', () => { converter.quality = Number(converterElements.qualityRange.value); updateConverterControls(); });
-converterElements.background.addEventListener('input', () => { converter.background = converterElements.background.value; converterElements.backgroundValue.textContent = converter.background.toUpperCase(); updateConverterControls(); });
+converterElements.qualityRange.addEventListener('input', () => { converter.quality = Number(converterElements.qualityRange.value); updateConverterControls(); });converterElements.background.addEventListener('input', () => { converter.background = converterElements.background.value; converterElements.backgroundValue.textContent = converter.background.toUpperCase(); updateConverterControls(); });
 converterElements.losslessInput.addEventListener('change', () => { converter.lossless = converterElements.losslessInput.checked; updateConverterControls(); });
 converterElements.colorProfileInput.addEventListener('change', () => { converter.preserveColorProfile = converterElements.colorProfileInput.checked; updateConverterControls(); });
 converterElements.metadataInput.addEventListener('change', () => { converter.keepMetadata = converterElements.metadataInput.checked; updateConverterControls(); });
@@ -1293,26 +1479,26 @@ wireDropZone(metadataElements.dropZone, addMetadataItems);
 $$('.resize-mode-tab').forEach((button) => button.addEventListener('click', () => setResizeMode(button.dataset.resizeMode)));
 resizeElements.ratioLockInput.addEventListener('change', () => setRatioLock(resizeElements.ratioLockInput.checked)); resizeElements.templateRatioLockInput.addEventListener('change', () => setRatioLock(resizeElements.templateRatioLockInput.checked));
 resizeElements.width.addEventListener('input', () => syncDimension('width')); resizeElements.height.addEventListener('input', () => syncDimension('height'));
-resizeElements.percentage.addEventListener('input', () => { resizeElements.percentageRange.value = Math.min(200, Number(resizeElements.percentage.value) || 1); updateResizeTarget(); scheduleResizePreview(); });
-resizeElements.percentageRange.addEventListener('input', () => { resizeElements.percentage.value = resizeElements.percentageRange.value; updateResizeTarget(); scheduleResizePreview(); });
-$$('[data-percentage]').forEach((button) => button.addEventListener('click', () => { resizeElements.percentage.value = button.dataset.percentage; resizeElements.percentageRange.value = Math.min(200, Number(button.dataset.percentage)); $$('[data-percentage]').forEach((item) => item.classList.toggle('active', item === button)); updateResizeTarget(); scheduleResizePreview(0); }));
+resizeElements.percentage.addEventListener('input', () => { resizeElements.percentageRange.value = Math.min(200, Number(resizeElements.percentage.value) || 1); setRangeFill(resizeElements.percentageRange); $$('[data-percentage]').forEach((item) => item.classList.toggle('active', item.dataset.percentage === resizeElements.percentage.value)); updateResizeTarget(); scheduleResizePreview(); });
+resizeElements.percentageRange.addEventListener('input', () => { resizeElements.percentage.value = resizeElements.percentageRange.value; setRangeFill(resizeElements.percentageRange); $$('[data-percentage]').forEach((item) => item.classList.toggle('active', item.dataset.percentage === resizeElements.percentage.value)); updateResizeTarget(); scheduleResizePreview(); });
+$$('[data-percentage]').forEach((button) => button.addEventListener('click', () => { resizeElements.percentage.value = button.dataset.percentage; resizeElements.percentageRange.value = Math.min(200, Number(button.dataset.percentage)); setRangeFill(resizeElements.percentageRange); $$('[data-percentage]').forEach((item) => item.classList.toggle('active', item === button)); updateResizeTarget(); scheduleResizePreview(0); }));
 $$('[data-platform]').forEach((button) => button.addEventListener('click', () => { resizer.platform = button.dataset.platform; resizer.presetId = presets[resizer.platform][0].id; $$('[data-platform]').forEach((item) => item.classList.toggle('active', item === button)); renderPresets(); scheduleResizePreview(0); }));
 
-window.arc.onProgress((progress) => { compressor.results.set(progress.id, progress); const done = progress.index + 1; compressorElements.progressBar.style.width = `${done / progress.total * 100}%`; compressorElements.progressText.textContent = `${done} de ${progress.total}`; if (!compressor.completed) renderCompressorQueue(); });
-window.arc.onStarted(({ id }) => { if (!compressor.completed) { compressor.results.set(id, { working: true }); renderCompressorQueue(); } });
-window.arc.onResizeProgress((progress) => { resizer.results.set(progress.id, progress); const done = progress.index + 1; resizeElements.progressBar.style.width = `${done / progress.total * 100}%`; resizeElements.progressText.textContent = `${done} de ${progress.total}`; if (!resizer.completed) renderResizeQueue(); });
-window.arc.onResizeStarted(({ id }) => { if (!resizer.completed) { resizer.results.set(id, { working: true }); renderResizeQueue(); } });
-window.arc.onMetadataProgress((progress) => { metadataCleaner.results.set(progress.id, progress); const done = progress.index + 1; metadataElements.progressBar.style.width = `${done / progress.total * 100}%`; metadataElements.progressText.textContent = `${done} de ${progress.total}`; if (!metadataCleaner.completed) renderMetadataQueue(); });
-window.arc.onMetadataStarted(({ id }) => { if (!metadataCleaner.completed) { metadataCleaner.results.set(id, { working: true }); renderMetadataQueue(); } });
-window.arc.onConversionProgress((progress) => { converter.results.set(progress.id, progress); const done = progress.index + 1; converterElements.progressBar.style.width = `${done / progress.total * 100}%`; converterElements.progressText.textContent = `${done} de ${progress.total}`; if (!converter.completed) renderConverterQueue(); });
-window.arc.onConversionStarted(({ id }) => { if (!converter.completed) { converter.results.set(id, { working: true }); renderConverterQueue(); } });
-window.arc.onRenameProgress((progress) => { renamer.results.set(progress.id, progress); const done = progress.index + 1; renamerElements.progressBar.style.width = `${done / progress.total * 100}%`; renamerElements.progressText.textContent = `${done} de ${progress.total}`; if (!renamer.completed) renderRenamerQueue(); });
-window.arc.onRenameStarted(({ id }) => { if (!renamer.completed) { renamer.results.set(id, { working: true }); renderRenamerQueue(); } });
+window.arc.onProgress((progress) => { compressor.results.set(progress.id, progress); const done = progress.index + 1; compressorElements.progressBar.style.width = `${done / progress.total * 100}%`; compressorElements.progressText.textContent = `${done} de ${progress.total}`; if (!compressor.completed) queueRender(renderCompressorQueue); });
+window.arc.onStarted(({ id }) => { if (!compressor.completed) { compressor.results.set(id, { working: true }); queueRender(renderCompressorQueue); } });
+window.arc.onResizeProgress((progress) => { resizer.results.set(progress.id, progress); const done = progress.index + 1; resizeElements.progressBar.style.width = `${done / progress.total * 100}%`; resizeElements.progressText.textContent = `${done} de ${progress.total}`; if (!resizer.completed) queueRender(renderResizeQueue); });
+window.arc.onResizeStarted(({ id }) => { if (!resizer.completed) { resizer.results.set(id, { working: true }); queueRender(renderResizeQueue); } });
+window.arc.onMetadataProgress((progress) => { metadataCleaner.results.set(progress.id, progress); const done = progress.index + 1; metadataElements.progressBar.style.width = `${done / progress.total * 100}%`; metadataElements.progressText.textContent = `${done} de ${progress.total}`; if (!metadataCleaner.completed) queueRender(renderMetadataQueue); });
+window.arc.onMetadataStarted(({ id }) => { if (!metadataCleaner.completed) { metadataCleaner.results.set(id, { working: true }); queueRender(renderMetadataQueue); } });
+window.arc.onConversionProgress((progress) => { converter.results.set(progress.id, progress); const done = progress.index + 1; converterElements.progressBar.style.width = `${done / progress.total * 100}%`; converterElements.progressText.textContent = `${done} de ${progress.total}`; if (!converter.completed) queueRender(renderConverterQueue); });
+window.arc.onConversionStarted(({ id }) => { if (!converter.completed) { converter.results.set(id, { working: true }); queueRender(renderConverterQueue); } });
+window.arc.onRenameProgress((progress) => { renamer.results.set(progress.id, progress); const done = progress.index + 1; renamerElements.progressBar.style.width = `${done / progress.total * 100}%`; renamerElements.progressText.textContent = `${done} de ${progress.total}`; if (!renamer.completed) queueRender(renderRenamerQueue); });
+window.arc.onRenameStarted(({ id }) => { if (!renamer.completed) { renamer.results.set(id, { working: true }); queueRender(renderRenamerQueue); } });
 window.arc.onUpdateState(renderUpdateState);
 
 [compressorElements.start, resizeElements.start, converterElements.start, renamerElements.start, metadataElements.start]
   .forEach((button) => setActionState(button, 'idle'));
-$$('.progress-wrap').forEach((element) => { element.setAttribute('role', 'status'); element.setAttribute('aria-live', 'polite'); });
+$$('.progress').forEach((element) => { element.setAttribute('role', 'status'); element.setAttribute('aria-live', 'polite'); });
 $$('.summary').forEach((element) => { element.setAttribute('role', 'status'); element.setAttribute('aria-live', 'polite'); });
 
 updateElements.button.addEventListener('click', () => {
@@ -1332,4 +1518,6 @@ window.arc.defaultOutput().then((outputPath) => { compressor.outputRoot = output
 window.arc.getUpdateState().then(renderUpdateState);
 metadataElements.colorProfile.classList.add('active');
 converterElements.colorProfile.classList.add('active');
-renderPresets(); updateResizeTarget(); updateConverterControls(); updateRenamerControls(); refreshRenamePreview();
+renderPresets(); updateResizeTarget(); updateConverterControls(); updateRenamerControls(); refreshRenamePreview(); updateCompressorSummary();
+[resizeElements.percentageRange, converterElements.qualityRange].forEach(setRangeFill);
+initSegments();

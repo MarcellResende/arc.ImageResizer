@@ -1,6 +1,6 @@
 {
   "name": "arc-image-studio",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "description": "Compressor, redimensionador, conversor, renomeador e limpador de metadados de imagens em lote.",
   "type": "module",
   "main": "src/main.mjs",

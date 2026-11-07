@@ -1,0 +1,89 @@
+/* Reset, document, materials. */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { height: 100%; margin: 0; }
+
+html { background: var(--bg-deep); }
+
+body {
+  font: 400 var(--fs-md)/1.45 var(--font);
+  letter-spacing: -0.006em;
+  color: var(--text);
+  background:
+    radial-gradient(900px 520px at 12% -8%, rgb(118 167 248 / 0.10), transparent 70%),
+    radial-gradient(760px 520px at 100% 108%, rgb(86 120 190 / 0.08), transparent 70%),
+    var(--bg-work);
+  background-attachment: fixed;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  cursor: default;
+}
+
+h1, h2, h3, h4, p { margin: 0; }
+button, input, select { font: inherit; color: inherit; letter-spacing: inherit; }
+button { border: 0; background: none; padding: 0; cursor: default; }
+input, select { user-select: text; }
+svg { display: block; }
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.hidden { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum", "cv11"; }
+
+/* One icon style: Lucide-derived, 24 grid, 1.75 stroke, round joins. */
+.i {
+  width: 18px; height: 18px; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;
+}
+.i-sm { width: 16px; height: 16px; }
+.i-xs { width: 14px; height: 14px; }
+.i-lg { width: 22px; height: 22px; }
+
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 2px; border-radius: var(--r-sm); }
+
+::selection { background: rgb(118 167 248 / 0.38); }
+
+/* Quiet, overlay-style scrollbars */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgb(255 255 255 / 0.14); border-radius: 10px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: rgb(255 255 255 / 0.26); background-clip: content-box; border: 3px solid transparent; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* ───────── Materials ─────────
+   1 canvas  = body
+   2 pane    = solid content surface, hairline only, never blurred
+   3 glass   = contextual controls (toolbar, segmented, dock, popovers) */
+.pane {
+  background: var(--pane);
+  border-radius: var(--r-pane);
+  box-shadow: 0 0 0 1px var(--hairline), 0 1px 0 rgb(255 255 255 / 0.035) inset, var(--shadow-2);
+}
+
+.glass {
+  position: relative;
+  isolation: isolate;
+  background: var(--glass-tint), var(--glass-fill);
+  background-blend-mode: normal;
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+}
+/* specular rim: a 1px gradient border drawn with a masked pseudo-element */
+.glass::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--glass-rim);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+}

@@ -108,8 +108,8 @@ O instalador será criado na pasta `release`.
 O aplicativo procura releases públicos em `MarcellResende/arc.ImageStudio`. Para publicar corretamente, atualize o campo `version` do `package.json`, faça o commit e envie uma tag com a mesma versão:
 
 ```powershell
-git tag v2.5.0
-git push origin v2.5.0
+git tag v2.6.0
+git push origin v2.6.0
 ```
 
 O workflow do GitHub executa os testes, cria o instalador NSIS e publica automaticamente o `.exe`, o `.blockmap` e o `latest.yml` no release. Esses três arquivos precisam ser gerados juntos; não substitua apenas o instalador manualmente.

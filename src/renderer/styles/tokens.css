@@ -1,0 +1,123 @@
+/* ARC Image Studio — design tokens (Graphite / Frost / Ice)
+   Semantic tokens only. Components never use raw colour values. */
+
+@font-face {
+  font-family: "Inter";
+  src: url("../assets/fonts/inter-latin-wght-normal.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* planes — canvas, content, raised, sunken */
+  --bg-deep: #080b12;
+  --bg-work: #0d1119;
+  --pane: #121821;
+  --pane-raised: #181f2b;
+  --pane-sunken: #0c1017;
+  --pane-hover: rgb(255 255 255 / 0.045);
+  --pane-press: rgb(255 255 255 / 0.075);
+  --pane-selected: rgb(118 167 248 / 0.13);
+
+  /* lines */
+  --hairline: rgb(255 255 255 / 0.065);
+  --hairline-strong: rgb(255 255 255 / 0.12);
+  --rim: rgb(255 255 255 / 0.2);
+
+  /* text */
+  --text: #f5f7fa;
+  --text-2: #a8b3c3;
+  --text-3: #8290a3;
+  --text-on-accent: #07101f;
+
+  /* accent — controlled ice blue */
+  --accent: #76a7f8;
+  --accent-hi: #a6ddff;
+  --accent-lo: #5b92ee;
+  --accent-soft: rgb(118 167 248 / 0.16);
+  --accent-line: rgb(118 167 248 / 0.42);
+
+  /* status */
+  --ok: #5fd3b3;
+  --ok-soft: rgb(95 211 179 / 0.14);
+  --warn: #f1c27d;
+  --warn-soft: rgb(241 194 125 / 0.14);
+  --err: #ff8f8a;
+  --err-soft: rgb(255 143 138 / 0.14);
+
+  /* liquid glass — contextual material (navigation, controls, popovers) */
+  --glass-fill: linear-gradient(180deg, rgb(255 255 255 / 0.11), rgb(255 255 255 / 0.045));
+  --glass-fill-strong: linear-gradient(180deg, rgb(255 255 255 / 0.16), rgb(255 255 255 / 0.07));
+  --glass-tint: rgb(24 32 46 / 0.62);
+  --glass-blur: blur(22px) saturate(1.7);
+  --glass-rim: linear-gradient(155deg, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0.07) 28%, rgb(255 255 255 / 0.02) 62%, rgb(255 255 255 / 0.22));
+  --glass-shadow: 0 1px 0 rgb(255 255 255 / 0.1) inset, 0 -1px 0 rgb(0 0 0 / 0.25) inset, 0 12px 32px -8px rgb(0 0 0 / 0.55), 0 2px 6px rgb(0 0 0 / 0.3);
+
+  /* elevation */
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow-2: 0 10px 28px -10px rgb(0 0 0 / 0.55), 0 2px 6px rgb(0 0 0 / 0.25);
+  --shadow-3: 0 24px 60px -16px rgb(0 0 0 / 0.7), 0 4px 12px rgb(0 0 0 / 0.3);
+
+  /* geometry — concentric: inner = outer − padding */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+  --r-pane: 18px;
+  --r-pill: 999px;
+
+  /* control heights */
+  --h-sm: 28px;
+  --h-md: 34px;
+  --h-lg: 42px;
+
+  /* spacing (4 px scale) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+
+  /* type */
+  --font: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-lg: 15px;
+  --fs-xl: 20px;
+  --fs-num: 28px;
+
+  /* motion */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --spring: linear(0, 0.063, 0.1991, 0.3555, 0.5042, 0.6324, 0.7361, 0.8163, 0.8761, 0.9191, 0.9491, 0.9695, 0.9828, 0.9912, 0.9963, 0.9992, 1.0007, 1.0014, 1.0015, 1.0014, 1.0012, 1.001, 1.0008, 1.0006, 1.0004, 1, 1);
+  --t-fast: 140ms;
+  --t-base: 200ms;
+  --t-slow: 280ms;
+
+  --toolbar-h: 52px;
+}
+
+/* Accessibility: users who ask for less transparency get solid materials. */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-fill: linear-gradient(180deg, #232c3b, #1d2532);
+    --glass-fill-strong: linear-gradient(180deg, #2a3445, #232c3b);
+    --glass-tint: #1b2330;
+    --glass-blur: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --hairline: rgb(255 255 255 / 0.2);
+    --hairline-strong: rgb(255 255 255 / 0.38);
+    --text-3: #aab5c5;
+  }
+}

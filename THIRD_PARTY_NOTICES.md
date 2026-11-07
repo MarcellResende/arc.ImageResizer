@@ -2,12 +2,17 @@
 
 ## Lucide icons
 
-The navigation uses adapted inline SVG paths from Lucide Icons:
-`minimize-2`, `scaling`, `arrow-left-right`, `case-sensitive`, and `shield-check`.
+The interface icon sprite (`src/renderer/index.html`, `<symbol id="i-…">`) uses
+paths from, or redrawn after, Lucide Icons: `minimize-2`, `scaling`,
+`arrow-left-right`, `case-sensitive`, `shield-check`, `upload`, `folder`,
+`folder-open`, `plus`, `x`, `trash-2`, `check`, `triangle-alert`, `info`,
+`search`, `lock`, `lock-open`, `refresh-cw`, `map-pin`, `camera`, `sparkles`,
+`image`, `copy`, `pencil`, `arrow-right`, `download`, `zap`, and `file`.
 
 Lucide is distributed under the ISC License. Some Lucide icons are derived from
-Feather and remain available under the MIT License. The icons used here are
-stored inline and require no network access at runtime.
+Feather and remain available under the MIT License. All icons are stored inline
+and require no network access at runtime. One stroke style is used everywhere
+(24 px grid, 1.75 stroke, round caps and joins).
 
 Copyright (c) 2026 Lucide Icons and Contributors
 
@@ -27,11 +32,14 @@ Source: https://github.com/lucide-icons/lucide
 
 ## Local fonts
 
-Inter, Manrope, and Sora are bundled locally in `src/renderer/assets/fonts/`.
-Their license files remain beside the font files. No font is fetched at runtime.
+Inter is bundled locally in `src/renderer/assets/fonts/` (SIL Open Font
+License 1.1; see `INTER-LICENSE.txt` beside the font file). No font is fetched
+at runtime. Sora and Manrope were bundled by an earlier revision and have been
+removed because the interface no longer uses them.
 
 ## Animation assets
 
-No LottieFiles or Motion assets were added. The interface uses local inline SVG,
-CSS transitions, and the Web platform only. The legacy generated GIF files are
-kept for compatibility but are not referenced by the renderer.
+No LottieFiles, Motion, or other animation assets are used. All motion is
+authored with local CSS transitions, CSS `linear()` spring easings, and SVG.
+The legacy generated GIF files are kept for compatibility but are not
+referenced by the renderer.

@@ -129,10 +129,13 @@ function createWindow() {
     height: 900,
     minWidth: 1000,
     minHeight: 720,
-    backgroundColor: '#080d18',
+    backgroundColor: '#0d1119',
     title: 'ARC Image Studio',
     icon: path.join(currentDirectory, 'renderer', 'assets', 'app.ico'),
     autoHideMenuBar: true,
+    // Integrated title bar: the app toolbar doubles as the drag region; native caption buttons stay.
+    titleBarStyle: 'hidden',
+    titleBarOverlay: { color: '#0d1119', symbolColor: '#a8b3c3', height: 52 },
     webPreferences: {
       preload: path.join(currentDirectory, 'preload.cjs'),
       contextIsolation: true,

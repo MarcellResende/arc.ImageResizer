@@ -5,213 +5,393 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:">
   <title>ARC Image Studio</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/layout.css">
+  <link rel="stylesheet" href="styles/tools.css">
 </head>
 <body>
-  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
-  <main class="app-shell">
-    <header class="topbar">
-      <div class="brand"><img src="assets/logos/logo.png" alt="ARC" class="brand-logo"><span id="brand-name" class="brand-name">Image Compressor</span></div>
-      <nav class="tool-switch" aria-label="Escolher ferramenta">
-        <button class="tool-tab active" data-tool="compressor" aria-pressed="true"><span class="tool-tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 10 7-7M20 10h-6V4M3 21l7-7M4 14h6v6"/></svg></span><span><strong>Compressor</strong><small>reduzir arquivos</small></span></button>
-        <button class="tool-tab" data-tool="resizer" aria-pressed="false"><span class="tool-tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M14 15H9v-5M16 3h5v5M21 3 9 15"/></svg></span><span><strong>Resizer</strong><small>alterar dimensões</small></span></button>
-        <button class="tool-tab" data-tool="converter" aria-pressed="false"><span class="tool-tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3 4 7l4 4M4 7h16m-4 14 4-4-4-4M20 17H4"/></svg></span><span><strong>Conversor</strong><small>trocar formato</small></span></button>
-        <button class="tool-tab" data-tool="renamer" aria-pressed="false"><span class="tool-tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m2 16 4.04-9.69a.5.5 0 0 1 .92 0L11 16M22 9v7M3.3 13h6.4"/><circle cx="18.5" cy="12.5" r="3.5"/></svg></span><span><strong>Renomeador</strong><small>nomes em lote</small></span></button>
-        <button class="tool-tab" data-tool="metadata" aria-pressed="false"><span class="tool-tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></span><span><strong>Metadados</strong><small>proteger privacidade</small></span></button>
+  <!-- Icon sprite: Lucide-derived paths (ISC), stored locally. See THIRD_PARTY_NOTICES.md -->
+  <svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
+    <symbol id="i-compress" viewBox="0 0 24 24"><path d="m14 10 7-7M20 10h-6V4M3 21l7-7M4 14h6v6"/></symbol>
+    <symbol id="i-resize" viewBox="0 0 24 24"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M14 15H9v-5M16 3h5v5M21 3 9 15"/></symbol>
+    <symbol id="i-convert" viewBox="0 0 24 24"><path d="M8 3 4 7l4 4M4 7h16m-4 14 4-4-4-4M20 17H4"/></symbol>
+    <symbol id="i-rename" viewBox="0 0 24 24"><path d="m2 16 4.04-9.69a.5.5 0 0 1 .92 0L11 16M22 9v7M3.3 13h6.4"/><circle cx="18.5" cy="12.5" r="3.5"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+    <symbol id="i-folder-open" viewBox="0 0 24 24"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+    <symbol id="i-unlock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M8 16H3v5"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+    <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 15V3M7 10l5 5 5-5M5 21h14"/></symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></symbol>
+  </svg>
+
+  <div class="app">
+    <header class="toolbar">
+      <div class="toolbar-brand"><img src="assets/logos/logo.png" alt="ARC" class="brand-logo"><span class="brand-sub">Image Studio</span></div>
+
+      <nav class="seg seg-nav glass" role="tablist" aria-label="Ferramentas">
+        <span class="seg-thumb" aria-hidden="true"></span>
+        <button class="tool-tab seg-item active" role="tab" id="tab-compressor" data-tool="compressor" aria-selected="true" aria-controls="compressor-view" title="Compressor — reduzir o peso dos arquivos"><svg class="i i-sm"><use href="#i-compress"/></svg><span>Compressor</span></button>
+        <button class="tool-tab seg-item" role="tab" id="tab-resizer" data-tool="resizer" aria-selected="false" aria-controls="resizer-view" title="Resizer — alterar dimensões"><svg class="i i-sm"><use href="#i-resize"/></svg><span>Resizer</span></button>
+        <button class="tool-tab seg-item" role="tab" id="tab-converter" data-tool="converter" aria-selected="false" aria-controls="converter-view" title="Conversor — trocar de formato"><svg class="i i-sm"><use href="#i-convert"/></svg><span>Conversor</span></button>
+        <button class="tool-tab seg-item" role="tab" id="tab-renamer" data-tool="renamer" aria-selected="false" aria-controls="renamer-view" title="Renomeador — nomes em lote"><svg class="i i-sm"><use href="#i-rename"/></svg><span>Renomeador</span></button>
+        <button class="tool-tab seg-item" role="tab" id="tab-metadata" data-tool="metadata" aria-selected="false" aria-controls="metadata-view" title="Metadados — proteger a privacidade"><svg class="i i-sm"><use href="#i-shield"/></svg><span>Metadados</span></button>
       </nav>
-      <div class="topbar-meta"><button id="update-button" class="update-button" type="button" title="Verificar atualizações"><span class="update-status-dot"></span><span id="update-button-label">v2.5.0</span></button></div>
+
+      <div class="toolbar-meta"><button id="update-button" class="update-button" type="button" title="Verificar atualizações"><span class="update-status-dot"></span><span id="update-button-label">v2.6.0</span></button></div>
     </header>
 
-    <aside id="update-notice" class="update-notice hidden" role="status" aria-live="polite">
-      <div class="update-notice-icon"><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14"/></svg></div>
-      <div class="update-notice-copy"><span id="update-notice-kicker">ATUALIZAÇÃO DISPONÍVEL</span><strong id="update-notice-title">Uma nova versão está pronta</strong><small id="update-notice-detail"></small><div id="update-progress" class="update-progress hidden"><span id="update-progress-bar"></span></div></div>
-      <button id="update-action" class="update-action" type="button">Atualizar agora</button>
-      <button id="update-dismiss" class="update-dismiss" type="button" aria-label="Fechar aviso">×</button>
+    <aside id="update-notice" class="update-notice glass hidden" role="status" aria-live="polite">
+      <div class="update-notice-icon"><svg class="i"><use href="#i-download"/></svg></div>
+      <div class="update-notice-copy"><span id="update-notice-kicker">Atualização disponível</span><strong id="update-notice-title">Uma nova versão está pronta</strong><small id="update-notice-detail"></small><div id="update-progress" class="update-progress hidden"><span id="update-progress-bar"></span></div></div>
+      <button id="update-dismiss" class="update-dismiss" type="button" aria-label="Fechar aviso"><svg class="i"><use href="#i-x"/></svg></button>
+      <button id="update-action" class="btn btn-primary btn-sm update-action" type="button">Atualizar agora</button>
     </aside>
 
-    <div id="compressor-view" class="tool-view">
-      <section class="hero">
-        <div class="hero-copy"><div class="eyebrow"><span></span> COMPRESSÃO LOCAL EM LOTE</div><h1>Imagens menores.<br><em>Qualidade intacta.</em></h1><p>Comprima milhares de arquivos JPG e PNG de uma só vez, sem alterar nenhum pixel e sem enviar nada para a internet.</p><div class="hero-facts"><span>✓ 100% local</span><span>✓ Originais protegidos</span><span>✓ Lotes organizados</span></div></div>
-        <div class="performance-visual"><div class="performance-glow"></div><div class="motion-icon motion-compress"><svg viewBox="0 0 64 64"><circle class="motion-ring" cx="32" cy="32" r="27"/><path class="compress-panel panel-left" d="M14 20h13v24H14z"/><path class="compress-panel panel-right" d="M37 20h13v24H37z"/><path class="compress-arrow arrow-left" d="m27 26-6 6 6 6"/><path class="compress-arrow arrow-right" d="m37 26 6 6-6 6"/></svg></div><div class="performance-copy"><span>PROCESSAMENTO ACELERADO</span><strong>Até 4 imagens ao mesmo tempo</strong><p>Mais velocidade nos lotes e opção de redução forte.</p></div></div>
-      </section>
-      <section class="upload-card">
-        <div id="drop-zone" class="drop-zone"><div class="motion-icon motion-upload"><svg viewBox="0 0 64 64"><circle class="motion-ring upload-ring" cx="32" cy="32" r="27"/><path class="upload-tray" d="M19 43v6h26v-6"/><path class="upload-arrow" d="M32 43V17m0 0-10 10m10-10 10 10"/></svg></div><div class="drop-copy"><h2>Solte suas imagens aqui</h2><p>ou escolha arquivos e pastas do seu computador</p></div><div class="drop-actions"><button id="select-files" class="button primary">Selecionar imagens</button><button id="select-folder" class="button ghost">Selecionar pasta</button></div><div class="format-line"><span>JPG</span><span>JPEG</span><span>PNG</span><small>até 10.000 arquivos</small></div><div class="paste-hint"><kbd>Ctrl</kbd><b>+</b><kbd>V</kbd><span>colar imagem copiada</span></div></div>
-        <div id="queue" class="queue hidden"><div class="queue-header"><div><span class="section-kicker">LOTE ATUAL</span><h2 id="queue-title">Imagens selecionadas</h2><p id="queue-subtitle"></p></div><div class="queue-actions"><div id="working-animation" class="working-animation hidden"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16"/></svg></div><button id="add-more" class="text-button">＋ Adicionar</button><button id="clear" class="text-button danger">Limpar</button></div></div><div id="progress-wrap" class="progress-wrap hidden"><div class="progress-track"><div id="progress-bar" class="progress-bar"></div></div><span id="progress-text">Preparando…</span></div><div class="list-head compressor-list-head"><span></span><span>ARQUIVO</span><span>TAMANHO</span><span>STATUS</span></div><div id="file-list" class="file-list"></div></div>
-        <div id="summary" class="summary hidden"><div class="summary-icon">✓</div><span class="section-kicker">PROCESSAMENTO CONCLUÍDO</span><h2>Seu novo lote está pronto</h2><p id="summary-text"></p><div class="summary-location"><span>ARQUIVOS SALVOS EM</span><strong id="summary-path"></strong></div><div class="summary-metrics"><div><span>ECONOMIZADO</span><strong id="saved-size">0 B</strong></div><div><span>REDUÇÃO</span><strong id="saved-percent">0%</strong></div><div><span>IMAGENS</span><strong id="processed-count">0</strong></div></div><div class="summary-actions"><button id="open-output" class="button primary compact">Abrir pasta do lote</button><button id="new-batch" class="button ghost compact">Novo lote</button></div></div>
-      </section>
-      <section class="settings-bar">
-        <div class="setting setting-destination"><div class="setting-icon"><svg viewBox="0 0 24 24"><path d="M3 7.5h6l2 2h10v8.75A1.75 1.75 0 0 1 19.25 20H4.75A1.75 1.75 0 0 1 3 18.25V7.5Z"/><path d="M3 7.5V5.75A1.75 1.75 0 0 1 4.75 4h4.1l2 2H19a2 2 0 0 1 2 2v1.5"/></svg></div><div class="setting-copy"><label for="output-path">SALVAR OS LOTES EM</label><input id="output-path" type="text" readonly></div><button id="select-output" class="small-button">Alterar</button></div>
-        <div class="setting setting-mode"><div class="setting-copy"><span class="setting-title">INTENSIDADE</span><div class="segmented-control"><label><input type="radio" name="level" value="lossless" checked><span><strong>Sem perda</strong><small>pixels intactos</small></span></label><label><input type="radio" name="level" value="compact"><span><strong>Redução forte</strong><small>alta qualidade</small></span></label></div></div></div>
-        <button id="start" class="button action" disabled><span>Otimizar imagens</span><span class="action-arrow">→</span></button>
-      </section>
-    </div>
+    <!-- ═════════ Compressor ═════════ -->
+    <section id="compressor-view" class="tool-view" role="tabpanel" aria-labelledby="tab-compressor">
+      <header class="tool-head"><h1>Compressor</h1><p>Reduz o peso de JPG e PNG em lote, sem enviar nada para a internet.</p></header>
+      <div class="tool-body">
+        <div class="tool-main pane">
+          <div id="drop-zone" class="drop-zone">
+            <div class="drop-art" aria-hidden="true"><svg class="i i-lg"><use href="#i-upload"/></svg></div>
+            <div class="drop-copy"><h2>Solte suas imagens aqui</h2><p>ou escolha arquivos e pastas do computador</p></div>
+            <div class="drop-actions"><button id="select-files" class="btn btn-primary">Selecionar imagens</button><button id="select-folder" class="btn">Selecionar pasta</button></div>
+            <div class="drop-meta"><span class="chip">JPG</span><span class="chip">PNG</span><span>até 10.000 arquivos</span><span class="drop-paste"><kbd>Ctrl</kbd><kbd>V</kbd> colar imagem</span></div>
+          </div>
+          <div id="queue" class="queue hidden">
+            <div class="pane-head"><div class="pane-title"><h2 id="queue-title">Imagens selecionadas</h2><p id="queue-subtitle"></p></div><div class="pane-actions"><div id="working-animation" class="spinner hidden"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16"/></svg></div><button id="add-more" class="btn btn-sm"><svg class="i i-xs"><use href="#i-plus"/></svg>Adicionar</button><button id="clear" class="btn btn-sm btn-ghost btn-danger">Limpar</button></div></div>
+            <div id="progress-wrap" class="progress hidden"><div class="progress-track"><div id="progress-bar" class="progress-bar"></div></div><span id="progress-text">Preparando…</span></div>
+            <div class="list-head cols-wide"><span></span><span>Arquivo</span><span class="r">Tamanho</span><span class="r">Status</span></div>
+            <div id="file-list" class="file-list"></div>
+          </div>
+          <div id="summary" class="summary hidden">
+            <div class="summary-badge"><svg class="i i-lg"><use href="#i-check"/></svg></div>
+            <h2>Lote concluído</h2><p id="summary-text"></p>
+            <div class="summary-metrics"><div><strong id="saved-size">0 B</strong><span>Economizado</span></div><div><strong id="saved-percent">0%</strong><span>Redução</span></div><div><strong id="processed-count">0</strong><span>Imagens</span></div></div>
+            <div class="summary-path"><svg class="i i-sm"><use href="#i-folder"/></svg><span id="summary-path"></span></div>
+            <div class="summary-actions"><button id="open-output" class="btn btn-primary"><svg class="i i-sm"><use href="#i-folder-open"/></svg>Abrir pasta do lote</button><button id="new-batch" class="btn">Novo lote</button></div>
+          </div>
+        </div>
 
-    <div id="resizer-view" class="tool-view hidden">
-      <section class="hero">
-        <div class="hero-copy"><div class="eyebrow"><span></span> REDIMENSIONAMENTO PROFISSIONAL</div><h1>O tamanho certo.<br><em>Para qualquer mídia.</em></h1><p>Redimensione em pixels, porcentagem ou escolha um formato pronto para redes sociais. Rápido, privado e em lote.</p><div class="hero-facts"><span>✓ Tamanho personalizado</span><span>✓ Presets sociais</span><span>✓ Proporção sob controle</span></div></div>
-        <div class="performance-visual resize-visual"><div class="performance-glow"></div><div class="motion-icon motion-resize"><svg viewBox="0 0 64 64"><circle class="motion-ring" cx="32" cy="32" r="27"/><path class="resize-frame" d="M18 29V18h11M46 35v11H35"/><path class="resize-arrow resize-arrow-a" d="M19 19l12 12M19 19h9M19 19v9"/><path class="resize-arrow resize-arrow-b" d="M45 45 33 33m12 12h-9m9 0v-9"/></svg></div><div class="performance-copy"><span>FORMATOS INTELIGENTES</span><strong>Do pixel ao post perfeito</strong><p>Presets prontos e controle total das dimensões.</p></div></div>
-      </section>
-      <section class="upload-card">
-        <div id="resize-drop-zone" class="drop-zone"><div class="motion-icon motion-upload"><svg viewBox="0 0 64 64"><circle class="motion-ring upload-ring" cx="32" cy="32" r="27"/><path class="upload-tray" d="M19 43v6h26v-6"/><path class="upload-arrow" d="M32 43V17m0 0-10 10m10-10 10 10"/></svg></div><div class="drop-copy"><h2>Escolha as imagens para redimensionar</h2><p>arraste arquivos aqui ou selecione uma pasta completa</p></div><div class="drop-actions"><button id="resize-select-files" class="button primary">Selecionar imagens</button><button id="resize-select-folder" class="button ghost">Selecionar pasta</button></div><div class="format-line"><span>JPG</span><span>JPEG</span><span>PNG</span><small>até 10.000 arquivos</small></div><div class="paste-hint"><kbd>Ctrl</kbd><b>+</b><kbd>V</kbd><span>colar imagem copiada</span></div></div>
-        <div id="resize-queue" class="queue resize-queue hidden">
-          <div class="queue-header"><div><span class="section-kicker">LOTE DO RESIZER</span><h2 id="resize-queue-title">Imagens selecionadas</h2><p id="resize-queue-subtitle"></p></div><div class="queue-actions"><div id="resize-working-animation" class="working-animation hidden"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16"/></svg></div><button id="resize-add-more" class="text-button">＋ Adicionar</button><button id="resize-clear" class="text-button danger">Limpar</button></div></div>
-          <div class="resize-workspace">
-            <div class="image-preview-card">
-              <div class="image-preview-stage"><div id="resize-preview-placeholder" class="preview-placeholder"><svg viewBox="0 0 48 48"><path d="M8 11h32v26H8zM12 32l8-8 6 6 5-5 5 7M31 18h.01"/></svg><span>Preparando preview…</span></div><img id="resize-preview-image" class="hidden" alt="Preview da imagem selecionada"></div>
-              <div class="preview-caption"><div><strong id="resize-preview-name">Imagem selecionada</strong><small id="resize-preview-meta">Clique em um arquivo para visualizar</small></div><div class="preview-actions"><span id="resize-preview-badge" class="preview-badge">RESULTADO</span><button id="refresh-resize-preview" class="preview-refresh" type="button" title="Atualizar preview"><svg viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M18.5 9A7 7 0 0 0 6 7l-2 5M5.5 15A7 7 0 0 0 18 17l2-5"/></svg></button></div></div>
+        <aside class="tool-side pane" aria-label="Opções do Compressor">
+          <section class="side-sec">
+            <h3 class="side-title">Intensidade</h3>
+            <div id="level-seg" class="seg seg-cards" role="radiogroup" aria-label="Intensidade">
+              <span class="seg-thumb" aria-hidden="true"></span>
+              <label class="seg-item"><input type="radio" name="level" value="lossless" checked><strong>Sem perda</strong><small>Pixels intactos</small></label>
+              <label class="seg-item"><input type="radio" name="level" value="compact"><strong>Redução forte</strong><small>Alta qualidade</small></label>
             </div>
-            <div class="resize-queue-files"><div id="resize-progress-wrap" class="progress-wrap hidden"><div class="progress-track"><div id="resize-progress-bar" class="progress-bar"></div></div><span id="resize-progress-text">Preparando…</span></div><div class="list-head"><span>ARQUIVO</span><span>RESULTADO</span><span>STATUS</span></div><div id="resize-file-list" class="file-list"></div></div>
+            <p id="level-note" class="side-note">Reorganiza os dados do arquivo sem recodificar a imagem. Os pixels permanecem idênticos.</p>
+          </section>
+          <section class="side-sec">
+            <h3 class="side-title">Processamento</h3>
+            <ul class="facts">
+              <li><svg class="i i-sm"><use href="#i-zap"/></svg><span>Até 4 imagens ao mesmo tempo</span></li>
+              <li><svg class="i i-sm"><use href="#i-shield"/></svg><span>Originais nunca são alterados</span></li>
+              <li><svg class="i i-sm"><use href="#i-folder"/></svg><span>Cada lote vai para uma pasta própria</span></li>
+            </ul>
+          </section>
+        </aside>
+      </div>
+      <footer class="dock glass settings-bar">
+        <div class="setting-destination"><span class="dest-icon"><svg class="i i-sm"><use href="#i-folder"/></svg></span><div class="dest-copy"><label for="output-path">Salvar em</label><input id="output-path" type="text" readonly></div><button id="select-output" class="btn btn-sm">Alterar</button></div>
+        <div class="dock-summary"><strong id="compressor-target-label">Sem perda</strong><small id="compressor-target-detail">Nenhuma imagem selecionada</small></div>
+        <button id="start" class="btn btn-primary btn-lg action" disabled><span>Otimizar imagens</span><svg class="i i-sm action-arrow"><use href="#i-arrow-right"/></svg></button>
+      </footer>
+    </section>
+
+    <!-- ═════════ Resizer ═════════ -->
+    <section id="resizer-view" class="tool-view hidden" role="tabpanel" aria-labelledby="tab-resizer">
+      <header class="tool-head"><h1>Resizer</h1><p>Redimensione por pixels, porcentagem ou formatos prontos para redes sociais.</p></header>
+      <div class="tool-body">
+        <div class="tool-main pane">
+          <div id="resize-drop-zone" class="drop-zone">
+            <div class="drop-art" aria-hidden="true"><svg class="i i-lg"><use href="#i-upload"/></svg></div>
+            <div class="drop-copy"><h2>Escolha as imagens para redimensionar</h2><p>arraste arquivos aqui ou selecione uma pasta completa</p></div>
+            <div class="drop-actions"><button id="resize-select-files" class="btn btn-primary">Selecionar imagens</button><button id="resize-select-folder" class="btn">Selecionar pasta</button></div>
+            <div class="drop-meta"><span class="chip">JPG</span><span class="chip">PNG</span><span>até 10.000 arquivos</span><span class="drop-paste"><kbd>Ctrl</kbd><kbd>V</kbd> colar imagem</span></div>
+          </div>
+          <div id="resize-queue" class="queue split hidden">
+            <div class="list-col">
+              <div class="pane-head"><div class="pane-title"><h2 id="resize-queue-title">Imagens selecionadas</h2><p id="resize-queue-subtitle"></p></div><div class="pane-actions"><div id="resize-working-animation" class="spinner hidden"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16"/></svg></div><button id="resize-add-more" class="btn btn-sm btn-icon" title="Adicionar imagens" aria-label="Adicionar imagens"><svg class="i i-xs"><use href="#i-plus"/></svg></button><button id="resize-clear" class="btn btn-sm btn-icon btn-ghost btn-danger" title="Limpar lote" aria-label="Limpar lote"><svg class="i i-xs"><use href="#i-trash"/></svg></button></div></div>
+              <div id="resize-progress-wrap" class="progress hidden"><div class="progress-track"><div id="resize-progress-bar" class="progress-bar"></div></div><span id="resize-progress-text">Preparando…</span></div>
+              <div id="resize-file-list" class="file-list compact"></div>
+            </div>
+            <div class="stage-col">
+              <div class="stage"><div id="resize-preview-placeholder" class="preview-placeholder"><svg class="i i-lg"><use href="#i-image"/></svg><span>Preparando preview…</span></div><img id="resize-preview-image" class="hidden" alt="Preview da imagem selecionada"></div>
+              <div class="stage-bar glass"><div class="stage-info"><strong id="resize-preview-name">Imagem selecionada</strong><small id="resize-preview-meta" class="num">Clique em um arquivo para visualizar</small></div><div class="stage-actions"><span id="resize-preview-badge" class="chip chip-accent">RESULTADO</span><button id="refresh-resize-preview" class="btn btn-sm btn-icon btn-ghost" type="button" title="Atualizar preview" aria-label="Atualizar preview"><svg class="i i-sm"><use href="#i-refresh"/></svg></button></div></div>
+            </div>
+          </div>
+          <div id="resize-summary" class="summary hidden">
+            <div class="summary-badge"><svg class="i i-lg"><use href="#i-check"/></svg></div>
+            <h2>Redimensionamento concluído</h2><p id="resize-summary-text"></p>
+            <div class="summary-metrics"><div><strong id="resize-processed-count">0</strong><span>Imagens</span></div><div><strong id="resize-result-size">—</strong><span>Dimensão final</span></div></div>
+            <div class="summary-path"><svg class="i i-sm"><use href="#i-folder"/></svg><span id="resize-summary-path"></span></div>
+            <div class="summary-actions"><button id="resize-open-output" class="btn btn-primary"><svg class="i i-sm"><use href="#i-folder-open"/></svg>Abrir pasta do lote</button><button id="resize-new-batch" class="btn">Novo lote</button></div>
           </div>
         </div>
-        <div id="resize-summary" class="summary hidden"><div class="summary-icon">✓</div><span class="section-kicker">REDIMENSIONAMENTO CONCLUÍDO</span><h2>Suas imagens estão prontas</h2><p id="resize-summary-text"></p><div class="summary-location"><span>ARQUIVOS SALVOS EM</span><strong id="resize-summary-path"></strong></div><div class="summary-metrics resize-summary-metrics"><div><span>IMAGENS</span><strong id="resize-processed-count">0</strong></div><div><span>FORMATO</span><strong id="resize-result-size">—</strong></div></div><div class="summary-actions"><button id="resize-open-output" class="button primary compact">Abrir pasta do lote</button><button id="resize-new-batch" class="button ghost compact">Novo lote</button></div></div>
-      </section>
 
-      <section class="resize-config-card">
-        <div class="config-heading"><div><span class="section-kicker">COMO REDIMENSIONAR</span><h2>Defina o novo tamanho</h2></div><p id="resize-mode-hint">Informe largura e altura em pixels.</p></div>
-        <div class="resize-mode-tabs">
-          <button class="resize-mode-tab active" data-resize-mode="dimensions"><span>▣</span><strong>Dimensões</strong><small>largura × altura</small></button>
-          <button class="resize-mode-tab" data-resize-mode="percentage"><span>%</span><strong>Porcentagem</strong><small>maior ou menor</small></button>
-          <button class="resize-mode-tab" data-resize-mode="template"><span>✦</span><strong>Redes sociais</strong><small>formatos prontos</small></button>
-        </div>
-        <div id="dimensions-panel" class="resize-panel"><div class="dimension-controls"><label class="dimension-input"><span>LARGURA</span><div><input id="resize-width" type="number" min="1" max="20000" value="1080"><small>px</small></div></label><label id="ratio-lock" class="ratio-checkbox"><input id="ratio-lock-input" type="checkbox" checked><span class="checkbox-mark"><svg viewBox="0 0 24 24"><path d="m6 12 4 4 8-9"/></svg></span><span class="checkbox-copy"><strong>Bloquear proporção</strong><small>ativado · evita deformações</small></span></label><label class="dimension-input"><span>ALTURA</span><div><input id="resize-height" type="number" min="1" max="20000" value="1080"><small>px</small></div></label></div></div>
-        <div id="percentage-panel" class="resize-panel hidden"><div class="percentage-control"><input id="resize-percentage-range" type="range" min="1" max="200" value="50"><label><input id="resize-percentage" type="number" min="1" max="500" value="50"><span>%</span></label></div><div class="quick-percentages"><button data-percentage="25">25%</button><button class="active" data-percentage="50">50%</button><button data-percentage="75">75%</button><button data-percentage="150">150%</button><button data-percentage="200">200%</button></div></div>
-        <div id="template-panel" class="resize-panel hidden"><div class="platform-tabs" id="platform-tabs"><button class="active" data-platform="instagram">Instagram</button><button data-platform="facebook">Facebook</button><button data-platform="x">X</button><button data-platform="tiktok">TikTok</button><button data-platform="linkedin">LinkedIn</button><button data-platform="youtube">YouTube</button></div><div id="preset-grid" class="preset-grid"></div><div class="template-lock-row"><label id="template-ratio-lock" class="ratio-checkbox template-ratio-checkbox"><input id="template-ratio-lock-input" type="checkbox" checked><span class="checkbox-mark"><svg viewBox="0 0 24 24"><path d="m6 12 4 4 8-9"/></svg></span><span class="checkbox-copy"><strong>Preservar proporção</strong><small>ativada · preenche sem deformar</small></span></label></div></div>
-      </section>
+        <aside class="tool-side pane" aria-label="Opções do Resizer">
+          <section class="side-sec">
+            <h3 class="side-title">Como redimensionar</h3>
+            <div class="seg seg-block" role="group" aria-label="Modo de redimensionamento">
+              <span class="seg-thumb" aria-hidden="true"></span>
+              <button class="resize-mode-tab seg-item active" data-resize-mode="dimensions" type="button">Dimensões</button>
+              <button class="resize-mode-tab seg-item" data-resize-mode="percentage" type="button">Escala</button>
+              <button class="resize-mode-tab seg-item" data-resize-mode="template" type="button">Redes</button>
+            </div>
+            <p id="resize-mode-hint" class="side-note">Informe largura e altura em pixels.</p>
+          </section>
 
-      <section class="settings-bar resize-settings-bar">
-        <div class="setting setting-destination"><div class="setting-icon"><svg viewBox="0 0 24 24"><path d="M3 7.5h6l2 2h10v8.75A1.75 1.75 0 0 1 19.25 20H4.75A1.75 1.75 0 0 1 3 18.25V7.5Z"/><path d="M3 7.5V5.75A1.75 1.75 0 0 1 4.75 4h4.1l2 2H19a2 2 0 0 1 2 2v1.5"/></svg></div><div class="setting-copy"><label for="resize-output-path">SALVAR OS LOTES EM</label><input id="resize-output-path" type="text" readonly></div><button id="resize-select-output" class="small-button">Alterar</button></div>
-        <div class="resize-target-preview"><span>RESULTADO</span><strong id="resize-target-label">1080 × 1080 px</strong><small id="resize-target-detail">proporção preservada</small></div>
-        <button id="resize-start" class="button action" disabled><span>Redimensionar</span><span class="action-arrow">→</span></button>
-      </section>
-    </div>
+          <section id="dimensions-panel" class="side-sec">
+            <div class="dim-row">
+              <label class="field"><span>Largura</span><div class="input-unit"><input id="resize-width" type="number" min="1" max="20000" value="1080"><small>px</small></div></label>
+              <label id="ratio-lock" class="lock-toggle active" title="Bloquear proporção"><input id="ratio-lock-input" type="checkbox" checked aria-label="Bloquear proporção"><svg class="i i-sm lock-on"><use href="#i-lock"/></svg><svg class="i i-sm lock-off"><use href="#i-unlock"/></svg></label>
+              <label class="field"><span>Altura</span><div class="input-unit"><input id="resize-height" type="number" min="1" max="20000" value="1080"><small>px</small></div></label>
+            </div>
+            <p class="lock-caption"><strong>Proporção bloqueada</strong><small>evita deformações</small></p>
+          </section>
 
-    <div id="converter-view" class="tool-view hidden">
-      <section class="hero">
-        <div class="hero-copy"><div class="eyebrow"><span></span> CONVERSÃO LOCAL EM LOTE</div><h1>Um arquivo.<br><em>Qualquer formato.</em></h1><p>Converta imagens para JPG, PNG, WebP ou AVIF com controle de qualidade, transparência e privacidade.</p><div class="hero-facts"><span>✓ Processamento local</span><span>✓ Transparência sob controle</span><span>✓ Até 4 por vez</span></div></div>
-        <div class="performance-visual converter-visual"><div class="performance-glow"></div><div class="motion-icon motion-convert"><svg viewBox="0 0 64 64"><circle class="motion-ring" cx="32" cy="32" r="27"/><path class="convert-file convert-file-a" d="M14 17h16v23H14zM24 17v7h6"/><path class="convert-file convert-file-b" d="M34 24h16v23H34zM44 24v7h6"/><path class="convert-arrow" d="M25 44h11m0 0-4-4m4 4-4 4M39 20H28m0 0 4-4m-4 4 4 4"/></svg></div><div class="performance-copy"><span>FORMATOS MODERNOS</span><strong>JPG, PNG, WebP e AVIF</strong><p>Escolha entre compatibilidade, transparência e arquivos menores.</p></div></div>
-      </section>
+          <section id="percentage-panel" class="side-sec hidden">
+            <div class="percent-row"><div class="input-unit big"><input id="resize-percentage" type="number" min="1" max="500" value="50" aria-label="Porcentagem"><small>%</small></div></div>
+            <input id="resize-percentage-range" type="range" min="1" max="200" value="50" aria-label="Escala em porcentagem">
+            <div class="seg seg-block quick-percentages" role="group" aria-label="Atalhos de escala">
+              <span class="seg-thumb" aria-hidden="true"></span>
+              <button class="seg-item" data-percentage="25" type="button">25%</button><button class="seg-item active" data-percentage="50" type="button">50%</button><button class="seg-item" data-percentage="75" type="button">75%</button><button class="seg-item" data-percentage="150" type="button">150%</button><button class="seg-item" data-percentage="200" type="button">200%</button>
+            </div>
+          </section>
 
-      <section class="upload-card">
-        <div id="converter-drop-zone" class="drop-zone"><div class="motion-icon motion-upload"><svg viewBox="0 0 64 64"><circle class="motion-ring upload-ring" cx="32" cy="32" r="27"/><path class="upload-tray" d="M19 43v6h26v-6"/><path class="upload-arrow" d="M32 43V17m0 0-10 10m10-10 10 10"/></svg></div><div class="drop-copy"><h2>Escolha as imagens para converter</h2><p>arraste arquivos ou selecione uma pasta completa</p></div><div class="drop-actions"><button id="converter-select-files" class="button primary">Selecionar imagens</button><button id="converter-select-folder" class="button ghost">Selecionar pasta</button></div><div class="format-line converter-input-formats"><span>JPG</span><span>PNG</span><span>WEBP</span><span>AVIF</span><span>TIFF</span><span>SVG</span><small>até 10.000 arquivos</small></div><div class="paste-hint"><kbd>Ctrl</kbd><b>+</b><kbd>V</kbd><span>colar imagem copiada</span></div></div>
-        <div id="converter-queue" class="queue converter-queue hidden">
-          <div class="queue-header"><div><span class="section-kicker">LOTE DO CONVERSOR</span><h2 id="converter-queue-title">Imagens selecionadas</h2><p id="converter-queue-subtitle"></p></div><div class="queue-actions"><div id="converter-working-animation" class="working-animation hidden"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16"/></svg></div><button id="converter-add-more" class="text-button">＋ Adicionar</button><button id="converter-clear" class="text-button danger">Limpar</button></div></div>
-          <div class="converter-workspace">
-            <div class="image-preview-card"><div class="image-preview-stage"><div id="converter-preview-placeholder" class="preview-placeholder"><svg viewBox="0 0 48 48"><path d="M8 11h32v26H8zM12 32l8-8 6 6 5-5 5 7M31 18h.01"/></svg><span>Preparando preview…</span></div><img id="converter-preview-image" class="hidden" alt="Preview da imagem selecionada"></div><div class="preview-caption"><div><strong id="converter-preview-name">Imagem selecionada</strong><small id="converter-preview-meta">Clique em um arquivo para visualizar</small></div><span id="converter-preview-badge" class="preview-badge">→ WEBP</span></div></div>
-            <div class="converter-queue-files"><div id="converter-progress-wrap" class="progress-wrap hidden"><div class="progress-track"><div id="converter-progress-bar" class="progress-bar"></div></div><span id="converter-progress-text">Preparando…</span></div><div class="list-head converter-list-head"><span></span><span>ARQUIVO</span><span>RESULTADO</span><span>STATUS</span></div><div id="converter-file-list" class="file-list converter-file-list"></div></div>
+          <section id="template-panel" class="side-sec hidden">
+            <div id="platform-tabs" class="seg seg-chips" role="group" aria-label="Plataforma">
+              <span class="seg-thumb" aria-hidden="true"></span>
+              <button class="seg-item active" data-platform="instagram" type="button">Instagram</button><button class="seg-item" data-platform="facebook" type="button">Facebook</button><button class="seg-item" data-platform="x" type="button">X</button><button class="seg-item" data-platform="tiktok" type="button">TikTok</button><button class="seg-item" data-platform="linkedin" type="button">LinkedIn</button><button class="seg-item" data-platform="youtube" type="button">YouTube</button>
+            </div>
+            <div id="preset-grid" class="seg seg-list" role="group" aria-label="Formatos"><span class="seg-thumb" aria-hidden="true"></span></div>
+            <label id="template-ratio-lock" class="switch-row active"><span class="switch-copy"><strong>Preservar proporção</strong><small>ativada · preenche sem deformar</small></span><input id="template-ratio-lock-input" type="checkbox" checked><span class="switch"></span></label>
+          </section>
+          <section class="side-sec result-sec">
+            <h3 class="side-title">Resultado na imagem selecionada</h3>
+            <div class="result-body"><div class="result-viz" id="resize-result-viz" aria-hidden="true"><span class="viz-original"></span><span class="viz-new"></span></div>
+            <dl class="result-rows">
+              <div><dt>Original</dt><dd id="resize-result-original" class="num">—</dd></div>
+              <div><dt>Novo</dt><dd id="resize-result-new" class="num accent">—</dd></div>
+              <div><dt>Pixels</dt><dd id="resize-result-delta" class="num">—</dd></div>
+            </dl></div>
+          </section>
+        </aside>
+      </div>
+      <footer class="dock glass settings-bar resize-settings-bar">
+        <div class="setting-destination"><span class="dest-icon"><svg class="i i-sm"><use href="#i-folder"/></svg></span><div class="dest-copy"><label for="resize-output-path">Salvar em</label><input id="resize-output-path" type="text" readonly></div><button id="resize-select-output" class="btn btn-sm">Alterar</button></div>
+        <div class="dock-summary"><strong id="resize-target-label" class="num">1080 × 1080 px</strong><small id="resize-target-detail">proporção preservada</small></div>
+        <button id="resize-start" class="btn btn-primary btn-lg action" disabled><span>Redimensionar</span><svg class="i i-sm action-arrow"><use href="#i-arrow-right"/></svg></button>
+      </footer>
+    </section>
+
+    <!-- ═════════ Conversor ═════════ -->
+    <section id="converter-view" class="tool-view hidden" role="tabpanel" aria-labelledby="tab-converter">
+      <header class="tool-head"><h1>Conversor</h1><p>Converta para JPG, PNG, WebP ou AVIF com controle de qualidade e transparência.</p></header>
+      <div class="tool-body">
+        <div class="tool-main pane">
+          <div id="converter-drop-zone" class="drop-zone">
+            <div class="drop-art" aria-hidden="true"><svg class="i i-lg"><use href="#i-upload"/></svg></div>
+            <div class="drop-copy"><h2>Escolha as imagens para converter</h2><p>arraste arquivos ou selecione uma pasta completa</p></div>
+            <div class="drop-actions"><button id="converter-select-files" class="btn btn-primary">Selecionar imagens</button><button id="converter-select-folder" class="btn">Selecionar pasta</button></div>
+            <div class="drop-meta"><span class="chip">JPG</span><span class="chip">PNG</span><span class="chip">WEBP</span><span class="chip">AVIF</span><span class="chip">TIFF</span><span class="chip">SVG</span><span class="drop-paste"><kbd>Ctrl</kbd><kbd>V</kbd> colar imagem</span></div>
+          </div>
+          <div id="converter-queue" class="queue split hidden">
+            <div class="list-col">
+              <div class="pane-head"><div class="pane-title"><h2 id="converter-queue-title">Imagens selecionadas</h2><p id="converter-queue-subtitle"></p></div><div class="pane-actions"><div id="converter-working-animation" class="spinner hidden"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16"/></svg></div><button id="converter-add-more" class="btn btn-sm btn-icon" title="Adicionar imagens" aria-label="Adicionar imagens"><svg class="i i-xs"><use href="#i-plus"/></svg></button><button id="converter-clear" class="btn btn-sm btn-icon btn-ghost btn-danger" title="Limpar lote" aria-label="Limpar lote"><svg class="i i-xs"><use href="#i-trash"/></svg></button></div></div>
+              <div id="converter-progress-wrap" class="progress hidden"><div class="progress-track"><div id="converter-progress-bar" class="progress-bar"></div></div><span id="converter-progress-text">Preparando…</span></div>
+              <div id="converter-file-list" class="file-list compact"></div>
+            </div>
+            <div class="stage-col">
+              <div class="stage"><div id="converter-preview-placeholder" class="preview-placeholder"><svg class="i i-lg"><use href="#i-image"/></svg><span>Preparando preview…</span></div><img id="converter-preview-image" class="hidden" alt="Preview da imagem selecionada"></div>
+              <div class="stage-bar glass"><div class="stage-info"><strong id="converter-preview-name">Imagem selecionada</strong><small id="converter-preview-meta" class="num">Clique em um arquivo para visualizar</small></div><div class="stage-actions"><span id="converter-preview-badge" class="chip chip-accent">→ WEBP</span></div></div>
+            </div>
+          </div>
+          <div id="converter-summary" class="summary hidden">
+            <div class="summary-badge"><svg class="i i-lg"><use href="#i-check"/></svg></div>
+            <h2>Conversão concluída</h2><p id="converter-summary-text"></p>
+            <div class="summary-metrics"><div><strong id="converter-processed-count">0</strong><span>Convertidas</span></div><div><strong id="converter-summary-format">WEBP</strong><span>Formato</span></div><div><strong id="converter-output-size">0 B</strong><span>Tamanho final</span></div></div>
+            <div class="summary-path"><svg class="i i-sm"><use href="#i-folder"/></svg><span id="converter-summary-path"></span></div>
+            <div class="summary-actions"><button id="converter-open-output" class="btn btn-primary"><svg class="i i-sm"><use href="#i-folder-open"/></svg>Abrir pasta do lote</button><button id="converter-new-batch" class="btn">Novo lote</button></div>
           </div>
         </div>
-        <div id="converter-summary" class="summary hidden"><div class="summary-icon">✓</div><span class="section-kicker">CONVERSÃO CONCLUÍDA</span><h2>Seus novos arquivos estão prontos</h2><p id="converter-summary-text"></p><div class="summary-location"><span>ARQUIVOS SALVOS EM</span><strong id="converter-summary-path"></strong></div><div class="summary-metrics"><div><span>CONVERTIDAS</span><strong id="converter-processed-count">0</strong></div><div><span>FORMATO</span><strong id="converter-summary-format">WEBP</strong></div><div><span>TAMANHO FINAL</span><strong id="converter-output-size">0 B</strong></div></div><div class="summary-actions"><button id="converter-open-output" class="button primary compact">Abrir pasta do lote</button><button id="converter-new-batch" class="button ghost compact">Novo lote</button></div></div>
-      </section>
 
-      <section class="converter-config-card">
-        <div class="config-heading"><div><span class="section-kicker">FORMATO DE SAÍDA</span><h2>Escolha como exportar</h2></div><p id="converter-format-hint">WebP oferece arquivos pequenos, transparência e ótima qualidade.</p></div>
-        <div class="converter-format-grid">
-          <button class="converter-format-card" data-converter-format="jpeg"><strong>JPG</strong><span>Compatibilidade máxima</span><small>ideal para fotografias</small></button>
-          <button class="converter-format-card" data-converter-format="png"><strong>PNG</strong><span>Pixels e transparência</span><small>compressão sem perda</small></button>
-          <button class="converter-format-card active" data-converter-format="webp"><strong>WebP</strong><span>Leve e versátil</span><small>ótimo para web</small></button>
-          <button class="converter-format-card" data-converter-format="avif"><strong>AVIF</strong><span>Máxima eficiência</span><small>menor, porém mais lento</small></button>
-        </div>
-        <div class="converter-controls">
-          <div id="converter-quality-control" class="converter-control"><div class="converter-control-heading"><span>QUALIDADE</span><strong id="converter-quality-label">88%</strong></div><input id="converter-quality-range" type="range" min="1" max="100" value="88"><small id="converter-quality-detail">Alta qualidade com boa redução de tamanho</small></div>
-          <div id="converter-background-control" class="converter-control hidden"><div class="converter-control-heading"><span>FUNDO PARA TRANSPARÊNCIA</span><strong id="converter-background-value">#FFFFFF</strong></div><label class="color-control"><input id="converter-background" type="color" value="#ffffff"><span>Escolher cor do fundo</span></label><small>JPG não aceita transparência</small></div>
-          <div class="converter-options">
-            <label id="converter-lossless" class="ratio-checkbox converter-option"><input id="converter-lossless-input" type="checkbox"><span class="checkbox-mark"><svg viewBox="0 0 24 24"><path d="m6 12 4 4 8-9"/></svg></span><span class="checkbox-copy"><strong>Modo sem perda</strong><small>arquivo maior, pixels intactos</small></span></label>
-            <label id="converter-color-profile" class="ratio-checkbox converter-option"><input id="converter-color-profile-input" type="checkbox" checked><span class="checkbox-mark"><svg viewBox="0 0 24 24"><path d="m6 12 4 4 8-9"/></svg></span><span class="checkbox-copy"><strong>Preservar perfil de cores</strong><small>mantém o ICC quando existir</small></span></label>
-            <label id="converter-metadata" class="ratio-checkbox converter-option"><input id="converter-metadata-input" type="checkbox"><span class="checkbox-mark"><svg viewBox="0 0 24 24"><path d="m6 12 4 4 8-9"/></svg></span><span class="checkbox-copy"><strong>Copiar metadados</strong><small>EXIF, autor e localização</small></span></label>
+        <aside class="tool-side pane" aria-label="Opções do Conversor">
+          <section class="side-sec">
+            <h3 class="side-title">Formato de saída</h3>
+            <div class="seg seg-grid converter-format-grid" role="group" aria-label="Formato de saída">
+              <span class="seg-thumb" aria-hidden="true"></span>
+              <button class="converter-format-card seg-item" data-converter-format="jpeg" type="button"><strong>JPG</strong><small>Compatibilidade máxima</small></button>
+              <button class="converter-format-card seg-item" data-converter-format="png" type="button"><strong>PNG</strong><small>Pixels e transparência</small></button>
+              <button class="converter-format-card seg-item active" data-converter-format="webp" type="button"><strong>WebP</strong><small>Leve e versátil</small></button>
+              <button class="converter-format-card seg-item" data-converter-format="avif" type="button"><strong>AVIF</strong><small>Menor, mais lento</small></button>
+            </div>
+            <p id="converter-format-hint" class="side-note">WebP oferece arquivos pequenos, transparência e ótima qualidade.</p>
+          </section>
+          <section id="converter-quality-control" class="side-sec converter-control">
+            <div class="control-head"><span class="label">Qualidade</span><strong id="converter-quality-label" class="num">88%</strong></div>
+            <input id="converter-quality-range" type="range" min="1" max="100" value="88" aria-label="Qualidade">
+            <p id="converter-quality-detail" class="side-note">Alta qualidade com boa redução de tamanho</p>
+          </section>
+          <section id="converter-background-control" class="side-sec converter-control hidden">
+            <div class="control-head"><span class="label">Fundo para transparência</span><strong id="converter-background-value" class="num">#FFFFFF</strong></div>
+            <label class="color-control"><input id="converter-background" type="color" value="#ffffff"><span>Escolher cor do fundo</span></label>
+            <p class="side-note">JPG não aceita transparência.</p>
+          </section>
+          <section class="side-sec">
+            <h3 class="side-title">Opções</h3>
+            <label id="converter-lossless" class="switch-row"><span class="switch-copy"><strong>Modo sem perda</strong><small>arquivo maior, pixels intactos</small></span><input id="converter-lossless-input" type="checkbox"><span class="switch"></span></label>
+            <label id="converter-color-profile" class="switch-row"><span class="switch-copy"><strong>Preservar perfil de cores</strong><small>mantém o ICC quando existir</small></span><input id="converter-color-profile-input" type="checkbox" checked><span class="switch"></span></label>
+            <label id="converter-metadata" class="switch-row"><span class="switch-copy"><strong>Copiar metadados</strong><small>EXIF, autor e localização</small></span><input id="converter-metadata-input" type="checkbox"><span class="switch"></span></label>
+          </section>
+        </aside>
+      </div>
+      <footer class="dock glass settings-bar converter-settings-bar">
+        <div class="setting-destination"><span class="dest-icon"><svg class="i i-sm"><use href="#i-folder"/></svg></span><div class="dest-copy"><label for="converter-output-path">Salvar em</label><input id="converter-output-path" type="text" readonly></div><button id="converter-select-output" class="btn btn-sm">Alterar</button></div>
+        <div class="dock-summary"><strong id="converter-target-label">WebP · qualidade 88%</strong><small id="converter-target-detail">perfil de cores preservado · metadados removidos</small></div>
+        <button id="converter-start" class="btn btn-primary btn-lg action" disabled><span>Converter imagens</span><svg class="i i-sm action-arrow"><use href="#i-arrow-right"/></svg></button>
+      </footer>
+    </section>
+
+    <!-- ═════════ Renomeador ═════════ -->
+    <section id="renamer-view" class="tool-view hidden" role="tabpanel" aria-labelledby="tab-renamer">
+      <header class="tool-head"><h1>Renomeador</h1><p>Aplique padrões, numeração e substituições, vendo o resultado antes de salvar.</p></header>
+      <div class="tool-body">
+        <div class="tool-main pane">
+          <div id="renamer-drop-zone" class="drop-zone">
+            <div class="drop-art" aria-hidden="true"><svg class="i i-lg"><use href="#i-upload"/></svg></div>
+            <div class="drop-copy"><h2>Escolha as imagens para renomear</h2><p>arraste arquivos ou selecione uma pasta completa</p></div>
+            <div class="drop-actions"><button id="renamer-select-files" class="btn btn-primary">Selecionar imagens</button><button id="renamer-select-folder" class="btn">Selecionar pasta</button></div>
+            <div class="drop-meta"><span class="chip">JPG</span><span class="chip">PNG</span><span class="chip">WEBP</span><span class="chip">AVIF</span><span class="chip">TIFF</span><span class="chip">SVG</span><span class="drop-paste"><kbd>Ctrl</kbd><kbd>V</kbd> colar imagem</span></div>
+          </div>
+          <div id="renamer-queue" class="queue renamer-queue hidden">
+            <div class="pane-head"><div class="pane-title"><h2 id="renamer-queue-title">Imagens selecionadas</h2><p id="renamer-queue-subtitle">Os originais ainda não foram alterados.</p></div><div class="pane-actions"><div id="renamer-working-animation" class="spinner hidden"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16"/></svg></div><button id="renamer-add-more" class="btn btn-sm"><svg class="i i-xs"><use href="#i-plus"/></svg>Adicionar</button><button id="renamer-clear" class="btn btn-sm btn-ghost btn-danger">Limpar</button></div></div>
+            <div id="renamer-progress-wrap" class="progress hidden"><div class="progress-track"><div id="renamer-progress-bar" class="progress-bar"></div></div><span id="renamer-progress-text">Preparando…</span></div>
+            <div class="list-head cols-rename"><span></span><span>Nome atual</span><span></span><span>Novo nome</span><span class="r">Status</span></div>
+            <div id="renamer-file-list" class="file-list"></div>
+          </div>
+          <div id="renamer-summary" class="summary hidden">
+            <div class="summary-badge"><svg class="i i-lg"><use href="#i-check"/></svg></div>
+            <h2>Renomeação concluída</h2><p id="renamer-summary-text"></p>
+            <div class="summary-metrics"><div><strong id="renamer-processed-count">0</strong><span>Arquivos</span></div><div><strong id="renamer-conflict-count">0</strong><span>Ajustes de conflito</span></div><div><strong id="renamer-summary-mode">CÓPIAS</strong><span>Modo</span></div></div>
+            <div id="renamer-summary-location" class="summary-path"><svg class="i i-sm"><use href="#i-folder"/></svg><span id="renamer-summary-path"></span><em id="renamer-summary-location-label" class="sr-only">Arquivos salvos em</em></div>
+            <div class="summary-actions"><button id="renamer-open-output" class="btn btn-primary"><svg class="i i-sm"><use href="#i-folder-open"/></svg>Abrir pasta do lote</button><button id="renamer-new-batch" class="btn">Novo lote</button></div>
           </div>
         </div>
-      </section>
 
-      <section class="settings-bar converter-settings-bar"><div class="setting setting-destination"><div class="setting-icon"><svg viewBox="0 0 24 24"><path d="M3 7.5h6l2 2h10v8.75A1.75 1.75 0 0 1 19.25 20H4.75A1.75 1.75 0 0 1 3 18.25V7.5Z"/><path d="M3 7.5V5.75A1.75 1.75 0 0 1 4.75 4h4.1l2 2H19a2 2 0 0 1 2 2v1.5"/></svg></div><div class="setting-copy"><label for="converter-output-path">SALVAR OS LOTES EM</label><input id="converter-output-path" type="text" readonly></div><button id="converter-select-output" class="small-button">Alterar</button></div><div class="converter-target-preview"><span>RESULTADO</span><strong id="converter-target-label">WebP · qualidade 88%</strong><small id="converter-target-detail">perfil de cores preservado · metadados removidos</small></div><button id="converter-start" class="button action" disabled><span>Converter imagens</span><span class="action-arrow">→</span></button></section>
-    </div>
+        <aside class="tool-side pane" aria-label="Regra de nomeação">
+          <section class="side-sec">
+            <h3 class="side-title">Padrão do nome</h3>
+            <label class="field"><span class="sr-only">Padrão principal</span><input id="renamer-pattern" type="text" value="{nome}-{n}" maxlength="180" autocomplete="off" spellcheck="false"></label>
+            <p class="pattern-example">Exemplo <b id="renamer-example" class="num">minha-foto-001.jpg</b></p>
+            <div class="token-row" role="group" aria-label="Inserir campo"><button type="button" class="chip token" data-rename-token="{nome}">Nome</button><button type="button" class="chip token" data-rename-token="{n}">Número</button><button type="button" class="chip token" data-rename-token="{data}">Data</button><button type="button" class="chip token" data-rename-token="{hora}">Hora</button></div>
+          </section>
+          <section class="side-sec">
+            <h3 class="side-title">Ajustes</h3>
+            <div class="field-grid">
+              <label class="field"><span>Prefixo</span><input id="renamer-prefix" type="text" placeholder="produto-" maxlength="80" spellcheck="false"></label>
+              <label class="field"><span>Sufixo</span><input id="renamer-suffix" type="text" placeholder="-final" maxlength="80" spellcheck="false"></label>
+              <label class="field"><span>Localizar</span><input id="renamer-find" type="text" placeholder="texto antigo" maxlength="120" spellcheck="false"></label>
+              <label class="field"><span>Substituir por</span><input id="renamer-replace" type="text" placeholder="novo texto" maxlength="120" spellcheck="false"></label>
+              <label class="field"><span>Começar em</span><input id="renamer-start-number" type="number" min="0" max="999999999" value="1"></label>
+              <label class="field"><span>Dígitos</span><select id="renamer-digits"><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select></label>
+            </div>
+            <label class="field case-field"><span>Maiúsculas e minúsculas</span><select id="renamer-case"><option value="keep">Manter como está</option><option value="lower">tudo minúsculo</option><option value="upper">TUDO MAIÚSCULO</option><option value="title">Iniciais Maiúsculas</option></select></label>
+            <label id="renamer-case-sensitive" class="switch-row"><span class="switch-copy"><strong>Diferenciar maiúsculas</strong><small>na busca e substituição</small></span><input id="renamer-case-sensitive-input" type="checkbox"><span class="switch"></span></label>
+          </section>
+          <section class="side-sec">
+            <h3 class="side-title">Onde aplicar</h3>
+            <div class="seg seg-cards" role="group" aria-label="Modo de renomeação">
+              <span class="seg-thumb" aria-hidden="true"></span>
+              <button class="renamer-mode-card seg-item active" type="button" data-rename-mode="copy"><strong>Criar cópias</strong><small>Recomendado · originais intactos</small></button>
+              <button class="renamer-mode-card seg-item" type="button" data-rename-mode="original"><strong>Renomear originais</strong><small>Altera os nomes no local</small></button>
+            </div>
+            <div id="renamer-original-warning" class="callout callout-warn hidden"><svg class="i"><use href="#i-alert"/></svg><span><strong>Atenção:</strong> este modo altera os nomes dos arquivos originais. O conteúdo das imagens não será modificado e conflitos serão resolvidos automaticamente.</span></div>
+          </section>
+        </aside>
+      </div>
+      <footer class="dock glass settings-bar renamer-settings-bar">
+        <div id="renamer-destination-setting" class="setting-destination"><span class="dest-icon"><svg class="i i-sm"><use href="#i-folder"/></svg></span><div class="dest-copy"><label for="renamer-output-path">Salvar cópias em</label><input id="renamer-output-path" type="text" readonly></div><button id="renamer-select-output" class="btn btn-sm">Alterar</button></div>
+        <div class="dock-summary"><strong id="renamer-target-label">Cópias em nova pasta</strong><small id="renamer-target-detail" class="num">original → nome-001.ext</small></div>
+        <button id="renamer-start" class="btn btn-primary btn-lg action" disabled><span>Renomear imagens</span><svg class="i i-sm action-arrow"><use href="#i-arrow-right"/></svg></button>
+      </footer>
+    </section>
 
-    <div id="renamer-view" class="tool-view hidden">
-      <section class="hero">
-        <div class="hero-copy"><div class="eyebrow"><span></span> ORGANIZAÇÃO INTELIGENTE EM LOTE</div><h1>Nomes consistentes.<br><em>Em poucos segundos.</em></h1><p>Renomeie milhares de imagens com padrões, numeração, datas, prefixos e substituições — vendo o resultado antes de aplicar.</p><div class="hero-facts"><span>✓ Preview instantâneo</span><span>✓ Conflitos protegidos</span><span>✓ Originais opcionais</span></div></div>
-        <div class="performance-visual renamer-visual"><div class="performance-glow"></div><div class="motion-icon motion-rename"><svg viewBox="0 0 64 64"><circle class="motion-ring" cx="32" cy="32" r="27"/><path class="rename-card rename-card-a" d="M14 18h27v10H14zM14 36h21v10H14z"/><path class="rename-line" d="M20 23h14M20 41h9"/><path class="rename-arrow" d="M46 31v16m0 0-6-6m6 6 6-6"/><path class="rename-spark" d="M48 14v8m-4-4h8"/></svg></div><div class="performance-copy"><span>REGRAS COMBINÁVEIS</span><strong>Do caos para uma sequência perfeita</strong><p>Monte o padrão uma vez e aplique em todo o lote.</p></div></div>
-      </section>
-
-      <section class="upload-card">
-        <div id="renamer-drop-zone" class="drop-zone"><div class="motion-icon motion-upload"><svg viewBox="0 0 64 64"><circle class="motion-ring upload-ring" cx="32" cy="32" r="27"/><path class="upload-tray" d="M19 43v6h26v-6"/><path class="upload-arrow" d="M32 43V17m0 0-10 10m10-10 10 10"/></svg></div><div class="drop-copy"><h2>Escolha as imagens para renomear</h2><p>arraste arquivos ou selecione uma pasta completa</p></div><div class="drop-actions"><button id="renamer-select-files" class="button primary">Selecionar imagens</button><button id="renamer-select-folder" class="button ghost">Selecionar pasta</button></div><div class="format-line renamer-input-formats"><span>JPG</span><span>PNG</span><span>WEBP</span><span>AVIF</span><span>TIFF</span><span>SVG</span><small>até 10.000 arquivos</small></div><div class="paste-hint"><kbd>Ctrl</kbd><b>+</b><kbd>V</kbd><span>colar imagem copiada</span></div></div>
-
-        <div id="renamer-queue" class="queue renamer-queue hidden">
-          <div class="queue-header"><div><span class="section-kicker">PREVIEW DO LOTE</span><h2 id="renamer-queue-title">Imagens selecionadas</h2><p id="renamer-queue-subtitle">Os originais ainda não foram alterados.</p></div><div class="queue-actions"><div id="renamer-working-animation" class="working-animation hidden"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16"/></svg></div><button id="renamer-add-more" class="text-button">＋ Adicionar</button><button id="renamer-clear" class="text-button danger">Limpar</button></div></div>
-          <div id="renamer-progress-wrap" class="progress-wrap hidden"><div class="progress-track"><div id="renamer-progress-bar" class="progress-bar"></div></div><span id="renamer-progress-text">Preparando…</span></div>
-          <div class="list-head renamer-list-head"><span></span><span>NOME ATUAL</span><span>NOVO NOME</span><span>STATUS</span></div><div id="renamer-file-list" class="file-list renamer-file-list"></div>
-        </div>
-
-        <div id="renamer-summary" class="summary hidden"><div class="summary-icon">✓</div><span class="section-kicker">RENOMEAÇÃO CONCLUÍDA</span><h2>Os novos nomes foram aplicados</h2><p id="renamer-summary-text"></p><div id="renamer-summary-location" class="summary-location"><span id="renamer-summary-location-label">ARQUIVOS SALVOS EM</span><strong id="renamer-summary-path"></strong></div><div class="summary-metrics"><div><span>ARQUIVOS</span><strong id="renamer-processed-count">0</strong></div><div><span>AJUSTES DE CONFLITO</span><strong id="renamer-conflict-count">0</strong></div><div><span>MODO</span><strong id="renamer-summary-mode">CÓPIAS</strong></div></div><div class="summary-actions"><button id="renamer-open-output" class="button primary compact">Abrir pasta do lote</button><button id="renamer-new-batch" class="button ghost compact">Novo lote</button></div></div>
-      </section>
-
-      <section class="renamer-config-card">
-        <div class="config-heading"><div><span class="section-kicker">REGRA DE NOMEAÇÃO</span><h2>Monte o novo nome</h2></div><p>Use os campos abaixo e acompanhe o preview em tempo real.</p></div>
-        <label class="renamer-pattern-field"><span>PADRÃO PRINCIPAL</span><input id="renamer-pattern" type="text" value="{nome}-{n}" maxlength="180" autocomplete="off"><small>Exemplo: <b id="renamer-example">minha-foto-001.jpg</b></small></label>
-        <div class="renamer-token-row"><span>INSERIR:</span><button type="button" data-rename-token="{nome}">Nome original</button><button type="button" data-rename-token="{n}">Número</button><button type="button" data-rename-token="{data}">Data</button><button type="button" data-rename-token="{hora}">Hora</button></div>
-        <div class="renamer-fields-grid">
-          <label class="renamer-field"><span>PREFIXO</span><input id="renamer-prefix" type="text" placeholder="ex.: produto-" maxlength="80"></label>
-          <label class="renamer-field"><span>SUFIXO</span><input id="renamer-suffix" type="text" placeholder="ex.: -final" maxlength="80"></label>
-          <label class="renamer-field"><span>LOCALIZAR TEXTO</span><input id="renamer-find" type="text" placeholder="texto antigo" maxlength="120"></label>
-          <label class="renamer-field"><span>SUBSTITUIR POR</span><input id="renamer-replace" type="text" placeholder="novo texto" maxlength="120"></label>
-          <label class="renamer-field compact-field"><span>COMEÇAR EM</span><input id="renamer-start-number" type="number" min="0" max="999999999" value="1"></label>
-          <label class="renamer-field compact-field"><span>DÍGITOS</span><select id="renamer-digits"><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select></label>
-          <label class="renamer-field case-field"><span>MAIÚSCULAS E MINÚSCULAS</span><select id="renamer-case"><option value="keep">Manter como está</option><option value="lower">tudo minúsculo</option><option value="upper">TUDO MAIÚSCULO</option><option value="title">Iniciais Maiúsculas</option></select></label>
-          <label id="renamer-case-sensitive" class="ratio-checkbox renamer-checkbox"><input id="renamer-case-sensitive-input" type="checkbox"><span class="checkbox-mark"><svg viewBox="0 0 24 24"><path d="m6 12 4 4 8-9"/></svg></span><span class="checkbox-copy"><strong>Diferenciar maiúsculas</strong><small>na busca e substituição</small></span></label>
-        </div>
-
-        <div class="renamer-mode-heading"><span class="section-kicker">ONDE APLICAR</span><h3>Escolha como salvar</h3></div>
-        <div class="renamer-mode-grid">
-          <button class="renamer-mode-card active" type="button" data-rename-mode="copy"><span class="renamer-mode-icon"><svg viewBox="0 0 24 24"><path d="M8 8h11v11H8zM5 15H3V3h12v2"/></svg></span><span><strong>Criar cópias renomeadas</strong><small>Recomendado · originais permanecem intactos</small></span></button>
-          <button class="renamer-mode-card" type="button" data-rename-mode="original"><span class="renamer-mode-icon"><svg viewBox="0 0 24 24"><path d="M4 6h10v5H4zM4 15h7v4H4zM18 5v14m-3-3 3 3 3-3"/></svg></span><span><strong>Renomear os originais</strong><small>Altera os nomes nos locais atuais</small></span></button>
-        </div>
-        <div id="renamer-original-warning" class="renamer-warning hidden"><strong>Atenção:</strong> este modo altera os nomes dos arquivos originais. O conteúdo das imagens não será modificado e conflitos serão resolvidos automaticamente.</div>
-      </section>
-
-      <section class="settings-bar renamer-settings-bar"><div id="renamer-destination-setting" class="setting setting-destination"><div class="setting-icon"><svg viewBox="0 0 24 24"><path d="M3 7.5h6l2 2h10v8.75A1.75 1.75 0 0 1 19.25 20H4.75A1.75 1.75 0 0 1 3 18.25V7.5Z"/><path d="M3 7.5V5.75A1.75 1.75 0 0 1 4.75 4h4.1l2 2H19a2 2 0 0 1 2 2v1.5"/></svg></div><div class="setting-copy"><label for="renamer-output-path">SALVAR AS CÓPIAS EM</label><input id="renamer-output-path" type="text" readonly></div><button id="renamer-select-output" class="small-button">Alterar</button></div><div class="renamer-target-preview"><span>RESULTADO</span><strong id="renamer-target-label">Cópias em nova pasta</strong><small id="renamer-target-detail">original → nome-001.ext</small></div><button id="renamer-start" class="button action" disabled><span>Renomear imagens</span><span class="action-arrow">→</span></button></section>
-    </div>
-
-    <div id="metadata-view" class="tool-view hidden">
-      <section class="hero">
-        <div class="hero-copy"><div class="eyebrow"><span></span> PRIVACIDADE LOCAL EM LOTE</div><h1>Dados privados fora.<br><em>Imagem intacta.</em></h1><p>Remova EXIF, localização, informações da câmera, comentários e outros dados ocultos sem enviar suas imagens para a internet.</p><div class="hero-facts"><span>✓ Originais protegidos</span><span>✓ Sem perda visual</span><span>✓ Perfil de cores opcional</span></div></div>
-        <div class="performance-visual metadata-visual"><div class="performance-glow"></div><div class="motion-icon motion-metadata"><svg viewBox="0 0 64 64"><circle class="motion-ring" cx="32" cy="32" r="27"/><path class="metadata-shield" d="M32 15 20 20v9c0 9 4.8 15.6 12 19 7.2-3.4 12-10 12-19v-9l-12-5Z"/><path class="metadata-check" d="m25 31 5 5 10-12"/><path class="metadata-spark spark-a" d="M49 13v8m-4-4h8"/><path class="metadata-spark spark-b" d="M13 40v6m-3-3h6"/></svg></div><div class="performance-copy"><span>LIMPEZA SEGURA</span><strong>Privacidade sem alterar a imagem</strong><p>JPEGs são tratados sem recompressão sempre que possível.</p></div></div>
-      </section>
-
-      <section class="upload-card">
-        <div id="metadata-drop-zone" class="drop-zone"><div class="motion-icon motion-upload"><svg viewBox="0 0 64 64"><circle class="motion-ring upload-ring" cx="32" cy="32" r="27"/><path class="upload-tray" d="M19 43v6h26v-6"/><path class="upload-arrow" d="M32 43V17m0 0-10 10m10-10 10 10"/></svg></div><div class="drop-copy"><h2>Escolha as imagens para proteger</h2><p>o ARC analisa os dados ocultos antes da limpeza</p></div><div class="drop-actions"><button id="metadata-select-files" class="button primary">Selecionar imagens</button><button id="metadata-select-folder" class="button ghost">Selecionar pasta</button></div><div class="format-line"><span>JPG</span><span>JPEG</span><span>PNG</span><small>até 10.000 arquivos</small></div><div class="paste-hint"><kbd>Ctrl</kbd><b>+</b><kbd>V</kbd><span>colar imagem copiada</span></div></div>
-
-        <div id="metadata-queue" class="queue metadata-queue hidden">
-          <div class="queue-header"><div><span class="section-kicker">ANÁLISE DE PRIVACIDADE</span><h2 id="metadata-queue-title">Imagens selecionadas</h2><p id="metadata-queue-subtitle"></p></div><div class="queue-actions"><div id="metadata-working-animation" class="working-animation hidden"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16"/></svg></div><button id="metadata-add-more" class="text-button">＋ Adicionar</button><button id="metadata-clear" class="text-button danger">Limpar</button></div></div>
-          <div id="metadata-progress-wrap" class="progress-wrap hidden"><div class="progress-track"><div id="metadata-progress-bar" class="progress-bar"></div></div><span id="metadata-progress-text">Preparando…</span></div>
-          <div class="metadata-workspace">
-            <div class="metadata-queue-files"><div class="list-head metadata-list-head"><span></span><span>ARQUIVO</span><span>STATUS</span></div><div id="metadata-file-list" class="file-list metadata-file-list"></div></div>
+    <!-- ═════════ Metadados ═════════ -->
+    <section id="metadata-view" class="tool-view hidden" role="tabpanel" aria-labelledby="tab-metadata">
+      <header class="tool-head"><h1>Metadados</h1><p>Inspecione e remova EXIF, localização e rastros de IA sem alterar a imagem.</p></header>
+      <div class="tool-body single">
+        <div class="tool-main pane">
+          <div id="metadata-drop-zone" class="drop-zone">
+            <div class="drop-art" aria-hidden="true"><svg class="i i-lg"><use href="#i-upload"/></svg></div>
+            <div class="drop-copy"><h2>Escolha as imagens para proteger</h2><p>o ARC analisa os dados ocultos antes da limpeza</p></div>
+            <div class="drop-actions"><button id="metadata-select-files" class="btn btn-primary">Selecionar imagens</button><button id="metadata-select-folder" class="btn">Selecionar pasta</button></div>
+            <div class="drop-meta"><span class="chip">JPG</span><span class="chip">PNG</span><span>até 10.000 arquivos</span><span class="drop-paste"><kbd>Ctrl</kbd><kbd>V</kbd> colar imagem</span></div>
+          </div>
+          <div id="metadata-queue" class="queue split metadata-queue hidden">
+            <div class="list-col">
+              <div class="pane-head"><div class="pane-title"><h2 id="metadata-queue-title">Imagens selecionadas</h2><p id="metadata-queue-subtitle"></p></div><div class="pane-actions"><div id="metadata-working-animation" class="spinner hidden"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16"/></svg></div><button id="metadata-add-more" class="btn btn-sm btn-icon" title="Adicionar imagens" aria-label="Adicionar imagens"><svg class="i i-xs"><use href="#i-plus"/></svg></button><button id="metadata-clear" class="btn btn-sm btn-icon btn-ghost btn-danger" title="Limpar lote" aria-label="Limpar lote"><svg class="i i-xs"><use href="#i-trash"/></svg></button></div></div>
+              <div id="metadata-progress-wrap" class="progress hidden"><div class="progress-track"><div id="metadata-progress-bar" class="progress-bar"></div></div><span id="metadata-progress-text">Preparando…</span></div>
+              <div id="metadata-file-list" class="file-list compact"></div>
+            </div>
             <aside class="metadata-inspector" aria-label="Metadados da imagem selecionada">
-              <div id="metadata-inspector-empty" class="metadata-inspector-empty"><svg viewBox="0 0 48 48"><path d="M9 7h23l7 7v27H9zM32 7v8h7M16 23h16M16 29h16M16 35h10"/></svg><strong>Analisando a imagem…</strong><span>Os metadados aparecerão aqui.</span></div>
+              <div id="metadata-inspector-empty" class="metadata-inspector-empty"><svg class="i i-lg"><use href="#i-file"/></svg><strong>Analisando a imagem…</strong><span>Os metadados aparecerão aqui.</span></div>
               <div id="metadata-inspector-content" class="hidden">
-                <div class="inspector-heading"><div><span class="section-kicker">ARQUIVO SELECIONADO</span><h3 id="metadata-inspector-name">Imagem</h3><p id="metadata-inspector-summary"></p></div><span id="metadata-total-badge" class="metadata-total-badge">0 METADADOS</span></div>
-                <div id="metadata-health" class="metadata-health hidden"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 9v5m0 3h.01"/></svg><span><strong id="metadata-health-label"></strong><small id="metadata-health-detail"></small></span></div>
+                <div class="inspector-heading"><div><h3 id="metadata-inspector-name">Imagem</h3><p id="metadata-inspector-summary" class="num"></p></div><span id="metadata-total-badge" class="chip chip-accent num">0 metadados</span></div>
+                <div id="metadata-health" class="callout metadata-health hidden"><svg class="i"><use href="#i-info"/></svg><span><strong id="metadata-health-label"></strong><br><small id="metadata-health-detail"></small></span></div>
                 <div class="origin-grid">
-                  <article id="metadata-ai-card" class="origin-card"><span class="origin-card-icon"><svg viewBox="0 0 24 24"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle cx="12" cy="12" r="4"/></svg></span><span><small>ORIGEM / IA</small><strong id="metadata-ai-label">Analisando…</strong><em id="metadata-ai-detail"></em></span></article>
-                  <article class="origin-card"><span class="origin-card-icon"><svg viewBox="0 0 24 24"><path d="M12 21s7-5.1 7-12a7 7 0 1 0-14 0c0 6.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.4"/></svg></span><span><small>LOCAL</small><strong id="metadata-location-label">Sem localização</strong><em id="metadata-location-detail">Nenhuma coordenada GPS</em></span></article>
-                  <article class="origin-card"><span class="origin-card-icon"><svg viewBox="0 0 24 24"><path d="M4 7h4l2-2h4l2 2h4v11H4z"/><circle cx="12" cy="12.5" r="3.2"/></svg></span><span><small>CAPTURA</small><strong id="metadata-device-label">Dispositivo desconhecido</strong><em id="metadata-date-detail">Sem data de captura</em></span></article>
+                  <article id="metadata-ai-card" class="origin-card"><span class="origin-card-icon"><svg class="i i-sm"><use href="#i-sparkles"/></svg></span><span class="origin-copy"><small>Origem / IA</small><strong id="metadata-ai-label">Analisando…</strong><em id="metadata-ai-detail"></em></span></article>
+                  <article class="origin-card"><span class="origin-card-icon"><svg class="i i-sm"><use href="#i-pin"/></svg></span><span class="origin-copy"><small>Local</small><strong id="metadata-location-label">Sem localização</strong><em id="metadata-location-detail">Nenhuma coordenada GPS</em></span></article>
+                  <article class="origin-card"><span class="origin-card-icon"><svg class="i i-sm"><use href="#i-camera"/></svg></span><span class="origin-copy"><small>Captura</small><strong id="metadata-device-label">Dispositivo desconhecido</strong><em id="metadata-date-detail">Sem data de captura</em></span></article>
                 </div>
                 <div id="metadata-evidence" class="metadata-evidence hidden"></div>
-                <div class="metadata-toolbar"><label class="metadata-search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="metadata-search-input" type="search" placeholder="Pesquisar nome ou valor…" autocomplete="off"></label><span id="metadata-visible-count">0 itens</span></div>
+                <div class="metadata-toolbar">
+                  <label class="metadata-search field"><svg class="i i-sm"><use href="#i-search"/></svg><input id="metadata-search-input" type="search" placeholder="Pesquisar nome ou valor…" autocomplete="off" spellcheck="false"></label>
+                  <span id="metadata-visible-count" class="num">0 itens</span>
+                </div>
                 <div id="metadata-group-filter" class="metadata-group-filter"></div>
                 <div id="metadata-details" class="metadata-details"></div>
               </div>
             </aside>
           </div>
+          <div id="metadata-summary" class="summary hidden">
+            <div class="summary-badge"><svg class="i i-lg"><use href="#i-shield"/></svg></div>
+            <h2>Imagens protegidas</h2><p id="metadata-summary-text"></p>
+            <div class="summary-metrics"><div><strong id="metadata-cleaned-count">0</strong><span>Limpas</span></div><div><strong id="metadata-already-clean-count">0</strong><span>Rastros de IA removidos</span></div><div><strong id="metadata-processed-count">0</strong><span>Processadas</span></div></div>
+            <div class="summary-path"><svg class="i i-sm"><use href="#i-folder"/></svg><span id="metadata-summary-path"></span></div>
+            <div class="summary-actions"><button id="metadata-open-output" class="btn btn-primary"><svg class="i i-sm"><use href="#i-folder-open"/></svg>Abrir pasta do lote</button><button id="metadata-new-batch" class="btn">Novo lote</button></div>
+          </div>
         </div>
-
-        <div id="metadata-summary" class="summary hidden"><div class="summary-icon">✓</div><span class="section-kicker">LIMPEZA CONCLUÍDA</span><h2>Suas imagens estão protegidas</h2><p id="metadata-summary-text"></p><div class="summary-location"><span>ARQUIVOS SALVOS EM</span><strong id="metadata-summary-path"></strong></div><div class="summary-metrics"><div><span>LIMPAS</span><strong id="metadata-cleaned-count">0</strong></div><div><span>RASTROS DE IA REMOVIDOS</span><strong id="metadata-already-clean-count">0</strong></div><div><span>PROCESSADAS</span><strong id="metadata-processed-count">0</strong></div></div><div class="summary-actions"><button id="metadata-open-output" class="button primary compact">Abrir pasta do lote</button><button id="metadata-new-batch" class="button ghost compact">Novo lote</button></div></div>
-      </section>
-
-      <section class="settings-bar metadata-settings-bar">
-        <div class="setting setting-destination"><div class="setting-icon"><svg viewBox="0 0 24 24"><path d="M3 7.5h6l2 2h10v8.75A1.75 1.75 0 0 1 19.25 20H4.75A1.75 1.75 0 0 1 3 18.25V7.5Z"/><path d="M3 7.5V5.75A1.75 1.75 0 0 1 4.75 4h4.1l2 2H19a2 2 0 0 1 2 2v1.5"/></svg></div><div class="setting-copy"><label for="metadata-output-path">SALVAR OS LOTES EM</label><input id="metadata-output-path" type="text" readonly></div><button id="metadata-select-output" class="small-button">Alterar</button></div>
-        <div class="setting metadata-profile-setting"><label id="metadata-color-profile" class="ratio-checkbox metadata-checkbox"><input id="metadata-color-profile-input" type="checkbox" checked><span class="checkbox-mark"><svg viewBox="0 0 24 24"><path d="m6 12 4 4 8-9"/></svg></span><span class="checkbox-copy"><strong>Preservar perfil de cores</strong><small>ICC mantido · EXIF e rastros de IA removidos</small></span></label></div>
-        <button id="metadata-start" class="button action" disabled><span>Limpar todos os metadados</span><span class="action-arrow">→</span></button>
-      </section>
-    </div>
-  </main>
+      </div>
+      <footer class="dock glass settings-bar metadata-settings-bar">
+        <div class="setting-destination"><span class="dest-icon"><svg class="i i-sm"><use href="#i-folder"/></svg></span><div class="dest-copy"><label for="metadata-output-path">Salvar em</label><input id="metadata-output-path" type="text" readonly></div><button id="metadata-select-output" class="btn btn-sm">Alterar</button></div>
+        <label id="metadata-color-profile" class="switch-row dock-switch"><span class="switch-copy"><strong>Preservar perfil de cores</strong><small>ICC mantido · EXIF e rastros de IA removidos</small></span><input id="metadata-color-profile-input" type="checkbox" checked><span class="switch"></span></label>
+        <button id="metadata-start" class="btn btn-primary btn-lg action" disabled><span>Limpar metadados</span><svg class="i i-sm action-arrow"><use href="#i-arrow-right"/></svg></button>
+      </footer>
+    </section>
+  </div>
   <script src="app.js"></script>
 </body>
 </html>
