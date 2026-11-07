@@ -4,16 +4,27 @@ contextBridge.exposeInMainWorld('arc', {
   selectFiles: () => ipcRenderer.invoke('files:select'),
   selectFolder: () => ipcRenderer.invoke('folder:select'),
   addPaths: (paths) => ipcRenderer.invoke('files:from-paths', paths),
+  selectConversionFiles: () => ipcRenderer.invoke('conversion:files-select'),
+  selectConversionFolder: () => ipcRenderer.invoke('conversion:folder-select'),
+  addConversionPaths: (paths) => ipcRenderer.invoke('conversion:from-paths', paths),
+  pasteClipboardImages: () => ipcRenderer.invoke('clipboard:images'),
+  selectRenameFiles: () => ipcRenderer.invoke('rename:files-select'),
+  selectRenameFolder: () => ipcRenderer.invoke('rename:folder-select'),
+  addRenamePaths: (paths) => ipcRenderer.invoke('rename:from-paths', paths),
+  renamePreview: (items, options) => ipcRenderer.invoke('rename:preview', items, options),
   selectOutput: () => ipcRenderer.invoke('output:select'),
   defaultOutput: () => ipcRenderer.invoke('output:default'),
   showOutput: (outputPath) => ipcRenderer.invoke('output:show', outputPath),
   imageMetadata: (sourcePath) => ipcRenderer.invoke('image:metadata', sourcePath),
   imagePreview: (sourcePath, maxWidth, maxHeight) => ipcRenderer.invoke('image:preview', sourcePath, maxWidth, maxHeight),
   resizePreview: (sourcePath, options, maxWidth, maxHeight) => ipcRenderer.invoke('image:resize-preview', sourcePath, options, maxWidth, maxHeight),
+  conversionPreview: (sourcePath, maxWidth, maxHeight) => ipcRenderer.invoke('conversion:preview', sourcePath, maxWidth, maxHeight),
   inspectMetadata: (items) => ipcRenderer.invoke('metadata:inspect', items),
   optimize: (payload) => ipcRenderer.invoke('optimize:start', payload),
   resize: (payload) => ipcRenderer.invoke('resize:start', payload),
   cleanMetadata: (payload) => ipcRenderer.invoke('metadata:start', payload),
+  convert: (payload) => ipcRenderer.invoke('conversion:start', payload),
+  renameImages: (payload) => ipcRenderer.invoke('rename:start', payload),
   getUpdateState: () => ipcRenderer.invoke('update:get-state'),
   checkForUpdates: () => ipcRenderer.invoke('update:check'),
   installUpdate: () => ipcRenderer.invoke('update:install'),
@@ -51,6 +62,26 @@ contextBridge.exposeInMainWorld('arc', {
     const listener = (_event, data) => callback(data);
     ipcRenderer.on('metadata:started', listener);
     return () => ipcRenderer.removeListener('metadata:started', listener);
+  },
+  onConversionProgress: (callback) => {
+    const listener = (_event, data) => callback(data);
+    ipcRenderer.on('conversion:progress', listener);
+    return () => ipcRenderer.removeListener('conversion:progress', listener);
+  },
+  onConversionStarted: (callback) => {
+    const listener = (_event, data) => callback(data);
+    ipcRenderer.on('conversion:started', listener);
+    return () => ipcRenderer.removeListener('conversion:started', listener);
+  },
+  onRenameProgress: (callback) => {
+    const listener = (_event, data) => callback(data);
+    ipcRenderer.on('rename:progress', listener);
+    return () => ipcRenderer.removeListener('rename:progress', listener);
+  },
+  onRenameStarted: (callback) => {
+    const listener = (_event, data) => callback(data);
+    ipcRenderer.on('rename:started', listener);
+    return () => ipcRenderer.removeListener('rename:started', listener);
   },
   getPathForFile: (file) => webUtils.getPathForFile(file)
 });

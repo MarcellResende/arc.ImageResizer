@@ -1,5 +1,6 @@
-import { app, BrowserWindow, dialog, ipcMain, Notification, shell } from 'electron';
-import { readdir, stat } from 'node:fs/promises';
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Notification, shell } from 'electron';
+import { readdir, rm, stat } from 'node:fs/promises';
+import { rmSync } from 'node:fs';
 import { availableParallelism } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -7,6 +8,9 @@ import updaterPackage from 'electron-updater';
 import { createBatchDirectory, isSupportedImage, optimizeImage } from './optimizer.mjs';
 import { imageMetadata, imagePreview, resizeImage, resizePreview } from './resizer.mjs';
 import { cleanMetadataImage, inspectImageMetadata } from './metadata-cleaner.mjs';
+import { convertImage, conversionPreview, isSupportedConversionInput } from './converter.mjs';
+import { saveClipboardImageItems } from './clipboard-image.mjs';
+import { buildRenamePreview, isSupportedRenameInput, renameBatch } from './renamer.mjs';
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 const { autoUpdater } = updaterPackage;
@@ -22,6 +26,7 @@ let updateState = {
 };
 let manualUpdateCheck = false;
 let installAfterDownload = false;
+let clipboardSessionDirectory = '';
 
 function publicUpdateState() {
   return { ...updateState };
@@ -124,7 +129,7 @@ function createWindow() {
     height: 900,
     minWidth: 1000,
     minHeight: 720,
-    backgroundColor: '#030610',
+    backgroundColor: '#080d18',
     title: 'ARC Image Studio',
     icon: path.join(currentDirectory, 'renderer', 'assets', 'app.ico'),
     autoHideMenuBar: true,
@@ -165,6 +170,45 @@ async function scanDirectory(root, directory = root) {
   return images;
 }
 
+async function scanConversionDirectory(root, directory = root) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const images = [];
+  for (const entry of entries) {
+    const fullPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) images.push(...await scanConversionDirectory(root, fullPath));
+    else if (entry.isFile() && isSupportedConversionInput(fullPath)) images.push(await fileEntry(fullPath, path.relative(root, fullPath)));
+  }
+  return images;
+}
+
+async function scanRenameDirectory(root, directory = root) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const images = [];
+  for (const entry of entries) {
+    const fullPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) images.push(...await scanRenameDirectory(root, fullPath));
+    else if (entry.isFile() && isSupportedRenameInput(fullPath)) images.push(await fileEntry(fullPath, path.relative(root, fullPath)));
+  }
+  return images;
+}
+
+async function cleanupLegacyClipboardFiles() {
+  const clipboardRoot = path.join(app.getPath('temp'), 'ARC Image Studio', 'clipboard');
+  const entries = await readdir(clipboardRoot, { withFileTypes: true }).catch(() => []);
+  await Promise.all(entries
+    .filter((entry) => entry.isFile() && /^Imagem colada .+\.png$/i.test(entry.name))
+    .map((entry) => rm(path.join(clipboardRoot, entry.name), { force: true })));
+}
+
+ipcMain.handle('clipboard:images', async () => {
+  const clipboardItems = await clipboard.read();
+  if (!clipboardSessionDirectory) {
+    clipboardSessionDirectory = path.join(app.getPath('temp'), 'ARC Image Studio', 'clipboard', `session-${process.pid}-${Date.now()}`);
+  }
+  const savedPaths = await saveClipboardImageItems(clipboardItems, clipboardSessionDirectory);
+  return Promise.all(savedPaths.map((filePath) => fileEntry(filePath)));
+});
+
 ipcMain.handle('files:select', async () => {
   const result = await dialog.showOpenDialog({
     title: 'Selecione as imagens',
@@ -182,6 +226,72 @@ ipcMain.handle('folder:select', async () => {
   });
   if (result.canceled || !result.filePaths[0]) return [];
   return scanDirectory(result.filePaths[0]);
+});
+
+ipcMain.handle('conversion:files-select', async () => {
+  const result = await dialog.showOpenDialog({
+    title: 'Selecione as imagens para converter',
+    properties: ['openFile', 'multiSelections'],
+    filters: [{ name: 'Imagens compatíveis', extensions: ['jpg', 'jpeg', 'png', 'webp', 'avif', 'tif', 'tiff', 'svg'] }]
+  });
+  if (result.canceled) return [];
+  return Promise.all(result.filePaths.filter(isSupportedConversionInput).map((filePath) => fileEntry(filePath)));
+});
+
+ipcMain.handle('conversion:folder-select', async () => {
+  const result = await dialog.showOpenDialog({ title: 'Selecione a pasta com as imagens', properties: ['openDirectory'] });
+  if (result.canceled || !result.filePaths[0]) return [];
+  return scanConversionDirectory(result.filePaths[0]);
+});
+
+ipcMain.handle('rename:files-select', async () => {
+  const result = await dialog.showOpenDialog({
+    title: 'Selecione as imagens para renomear',
+    properties: ['openFile', 'multiSelections'],
+    filters: [{ name: 'Imagens compatíveis', extensions: ['jpg', 'jpeg', 'png', 'webp', 'avif', 'tif', 'tiff', 'svg'] }]
+  });
+  if (result.canceled) return [];
+  return Promise.all(result.filePaths.filter(isSupportedRenameInput).map((filePath) => fileEntry(filePath)));
+});
+
+ipcMain.handle('rename:folder-select', async () => {
+  const result = await dialog.showOpenDialog({ title: 'Selecione a pasta com as imagens', properties: ['openDirectory'] });
+  if (result.canceled || !result.filePaths[0]) return [];
+  return scanRenameDirectory(result.filePaths[0]);
+});
+
+ipcMain.handle('rename:from-paths', async (_event, paths) => {
+  if (!Array.isArray(paths) || paths.length > 10000) return [];
+  const images = [];
+  for (const candidate of paths) {
+    if (typeof candidate !== 'string' || !candidate) continue;
+    const info = await stat(candidate).catch(() => null);
+    if (info?.isDirectory()) images.push(...await scanRenameDirectory(candidate));
+    else if (info?.isFile() && isSupportedRenameInput(candidate)) images.push(await fileEntry(candidate));
+    if (images.length >= 10000) break;
+  }
+  return images.slice(0, 10000);
+});
+
+ipcMain.handle('rename:preview', async (_event, items, options) => {
+  if (!Array.isArray(items) || items.length > 10000) return [];
+  return buildRenamePreview(items, options);
+});
+
+ipcMain.handle('conversion:from-paths', async (_event, paths) => {
+  if (!Array.isArray(paths) || paths.length > 10000) return [];
+  const images = [];
+  for (const candidate of paths) {
+    if (typeof candidate !== 'string' || !candidate) continue;
+    try {
+      const info = await stat(candidate);
+      if (info.isDirectory()) images.push(...await scanConversionDirectory(candidate));
+      else if (info.isFile() && isSupportedConversionInput(candidate)) images.push(await fileEntry(candidate));
+    } catch {
+      // Ignore items removed while they are being added.
+    }
+  }
+  return images.slice(0, 10000);
 });
 
 ipcMain.handle('files:from-paths', async (_event, paths) => {
@@ -246,6 +356,11 @@ ipcMain.handle('image:resize-preview', async (_event, sourcePath, options, maxWi
   return resizePreview(sourcePath, options, maxWidth, maxHeight);
 });
 
+ipcMain.handle('conversion:preview', async (_event, sourcePath, maxWidth, maxHeight) => {
+  if (typeof sourcePath !== 'string' || !sourcePath) throw new Error('Imagem inválida.');
+  return conversionPreview(sourcePath, maxWidth, maxHeight);
+});
+
 ipcMain.handle('metadata:inspect', async (_event, items) => {
   if (!Array.isArray(items) || items.length > 10000) return [];
   const results = new Array(items.length);
@@ -267,6 +382,81 @@ ipcMain.handle('metadata:inspect', async (_event, items) => {
 
   await Promise.all(Array.from({ length: workerCount }, () => inspectNext()));
   return results;
+});
+
+ipcMain.handle('conversion:start', async (event, payload) => {
+  const { items, outputRoot, options } = payload ?? {};
+  if (!Array.isArray(items) || items.length === 0) throw new Error('Nenhuma imagem foi selecionada.');
+  if (typeof outputRoot !== 'string' || !outputRoot.trim()) throw new Error('Escolha a pasta de saída.');
+  if (items.length > 10000) throw new Error('O limite por lote é de 10.000 imagens.');
+
+  const batchPath = await createBatchDirectory(outputRoot, new Date(), 'Convertido');
+  const results = new Array(items.length);
+  const workerCount = Math.min(items.length, Math.max(1, Math.min(4, availableParallelism() - 1)));
+  let nextIndex = 0;
+  let completed = 0;
+
+  async function processNext() {
+    while (nextIndex < items.length) {
+      const itemIndex = nextIndex;
+      nextIndex += 1;
+      const item = items[itemIndex];
+      event.sender.send('conversion:started', { id: item.id });
+      try {
+        const result = await convertImage({ sourcePath: item.path, relativePath: item.relativePath, outputRoot: batchPath, options });
+        results[itemIndex] = { id: item.id, ok: true, ...result };
+        completed += 1;
+        event.sender.send('conversion:progress', { id: item.id, index: completed - 1, total: items.length, ok: true, ...result });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        results[itemIndex] = { id: item.id, ok: false, error: message };
+        completed += 1;
+        event.sender.send('conversion:progress', { id: item.id, index: completed - 1, total: items.length, ok: false, error: message });
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: workerCount }, () => processNext()));
+  if (Notification.isSupported()) {
+    const successful = results.filter((result) => result?.ok).length;
+    const notification = new Notification({
+      title: 'ARC Image Studio — conversão concluída',
+      body: `${successful} ${successful === 1 ? 'imagem convertida' : 'imagens convertidas'} em ${path.basename(batchPath)}.`,
+      icon: path.join(currentDirectory, 'renderer', 'assets', 'app.ico')
+    });
+    notification.on('click', () => shell.openPath(batchPath));
+    notification.show();
+  }
+  return { results, batchPath };
+});
+
+ipcMain.handle('rename:start', async (event, payload) => {
+  const { items, outputRoot, options } = payload ?? {};
+  if (!Array.isArray(items) || items.length === 0) throw new Error('Nenhuma imagem foi selecionada.');
+  if (items.length > 10000) throw new Error('O limite por lote é de 10.000 imagens.');
+  for (const item of items) event.sender.send('rename:started', { id: item.id });
+
+  const response = await renameBatch({
+    items,
+    outputRoot,
+    options,
+    onProgress: (result, index, total) => event.sender.send('rename:progress', { ...result, index, total })
+  });
+
+  if (Notification.isSupported()) {
+    const successful = response.results.filter((result) => result.ok).length;
+    const notification = new Notification({
+      title: 'ARC Image Studio — nomes atualizados',
+      body: response.outputMode === 'original'
+        ? `${successful} ${successful === 1 ? 'arquivo renomeado' : 'arquivos renomeados'} nos locais de origem.`
+        : `${successful} ${successful === 1 ? 'cópia renomeada' : 'cópias renomeadas'} em ${path.basename(response.batchPath)}.`,
+      icon: path.join(currentDirectory, 'renderer', 'assets', 'app.ico')
+    });
+    if (response.batchPath) notification.on('click', () => shell.openPath(response.batchPath));
+    notification.show();
+  }
+
+  return response;
 });
 
 ipcMain.handle('optimize:start', async (event, payload) => {
@@ -443,6 +633,7 @@ ipcMain.handle('metadata:start', async (event, payload) => {
 });
 
 app.whenReady().then(() => {
+  cleanupLegacyClipboardFiles().catch(() => {});
   createWindow();
   configureAutoUpdater();
   app.on('activate', () => {
@@ -452,4 +643,13 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('will-quit', () => {
+  if (!clipboardSessionDirectory) return;
+  const clipboardRoot = path.resolve(app.getPath('temp'), 'ARC Image Studio', 'clipboard');
+  const sessionPath = path.resolve(clipboardSessionDirectory);
+  if (sessionPath.startsWith(`${clipboardRoot}${path.sep}`)) {
+    try { rmSync(sessionPath, { recursive: true, force: true }); } catch {}
+  }
 });

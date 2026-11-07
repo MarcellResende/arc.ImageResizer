@@ -3,6 +3,16 @@ const resizer = {
   items: [], outputRoot: '', batchPath: '', running: false, completed: false, results: new Map(),
   mode: 'dimensions', lockRatio: true, sourceRatio: 1, primaryDimension: 'width', platform: 'instagram', presetId: 'instagram-square', selectedItemId: ''
 };
+const converter = {
+  items: [], outputRoot: '', batchPath: '', running: false, completed: false, results: new Map(),
+  format: 'webp', quality: 88, lossless: false, background: '#ffffff', preserveColorProfile: true,
+  keepMetadata: false, selectedItemId: '', previews: new Map()
+};
+const renamer = {
+  items: [], outputRoot: '', batchPath: '', running: false, completed: false, results: new Map(), plan: [],
+  pattern: '{nome}-{n}', prefix: '', suffix: '', find: '', replace: '', caseSensitive: false,
+  caseMode: 'keep', startNumber: 1, digits: 3, outputMode: 'copy', previewRequest: 0
+};
 const metadataCleaner = {
   items: [], outputRoot: '', batchPath: '', running: false, completed: false,
   results: new Map(), analysis: new Map(), preserveColorProfile: true, analyzing: false,
@@ -49,10 +59,26 @@ const presets = {
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
+const actionLabels = new WeakMap();
+
+function setActionState(button, state) {
+  const label = button.querySelector('span:first-child');
+  if (!actionLabels.has(button)) actionLabels.set(button, label?.textContent || 'Processar');
+  button.dataset.state = state;
+  if (!label) return;
+  label.textContent = state === 'running'
+    ? 'Processando…'
+    : state === 'success'
+      ? 'Concluído'
+      : state === 'error'
+        ? 'Tentar novamente'
+        : actionLabels.get(button);
+}
 const thumbnailCache = new Map();
 const metadataCache = new Map();
 let resizePreviewTimer = null;
 let resizePreviewRequest = 0;
+let renamePreviewTimer = null;
 
 const thumbnailObserver = new IntersectionObserver((entries) => {
   for (const entry of entries) {
@@ -104,12 +130,44 @@ const metadataElements = {
   visibleCount: $('#metadata-visible-count'), details: $('#metadata-details')
 };
 
+const converterElements = {
+  selectFiles: $('#converter-select-files'), selectFolder: $('#converter-select-folder'), addMore: $('#converter-add-more'),
+  selectOutput: $('#converter-select-output'), outputPath: $('#converter-output-path'), start: $('#converter-start'), clear: $('#converter-clear'),
+  dropZone: $('#converter-drop-zone'), queue: $('#converter-queue'), queueTitle: $('#converter-queue-title'), queueSubtitle: $('#converter-queue-subtitle'),
+  fileList: $('#converter-file-list'), progressWrap: $('#converter-progress-wrap'), progressBar: $('#converter-progress-bar'),
+  progressText: $('#converter-progress-text'), working: $('#converter-working-animation'), summary: $('#converter-summary'),
+  summaryText: $('#converter-summary-text'), summaryPath: $('#converter-summary-path'), processedCount: $('#converter-processed-count'),
+  summaryFormat: $('#converter-summary-format'), outputSize: $('#converter-output-size'), openOutput: $('#converter-open-output'),
+  newBatch: $('#converter-new-batch'), previewImage: $('#converter-preview-image'), previewPlaceholder: $('#converter-preview-placeholder'),
+  previewName: $('#converter-preview-name'), previewMeta: $('#converter-preview-meta'), previewBadge: $('#converter-preview-badge'),
+  formatHint: $('#converter-format-hint'), qualityControl: $('#converter-quality-control'), qualityRange: $('#converter-quality-range'),
+  qualityLabel: $('#converter-quality-label'), qualityDetail: $('#converter-quality-detail'), backgroundControl: $('#converter-background-control'),
+  background: $('#converter-background'), backgroundValue: $('#converter-background-value'), lossless: $('#converter-lossless'),
+  losslessInput: $('#converter-lossless-input'), colorProfile: $('#converter-color-profile'), colorProfileInput: $('#converter-color-profile-input'),
+  metadata: $('#converter-metadata'), metadataInput: $('#converter-metadata-input'), targetLabel: $('#converter-target-label'), targetDetail: $('#converter-target-detail')
+};
+
+const renamerElements = {
+  selectFiles: $('#renamer-select-files'), selectFolder: $('#renamer-select-folder'), addMore: $('#renamer-add-more'),
+  selectOutput: $('#renamer-select-output'), outputPath: $('#renamer-output-path'), start: $('#renamer-start'), clear: $('#renamer-clear'),
+  dropZone: $('#renamer-drop-zone'), queue: $('#renamer-queue'), queueTitle: $('#renamer-queue-title'), queueSubtitle: $('#renamer-queue-subtitle'),
+  fileList: $('#renamer-file-list'), progressWrap: $('#renamer-progress-wrap'), progressBar: $('#renamer-progress-bar'),
+  progressText: $('#renamer-progress-text'), working: $('#renamer-working-animation'), summary: $('#renamer-summary'),
+  summaryText: $('#renamer-summary-text'), summaryPath: $('#renamer-summary-path'), summaryLocation: $('#renamer-summary-location'),
+  summaryLocationLabel: $('#renamer-summary-location-label'), processedCount: $('#renamer-processed-count'), conflictCount: $('#renamer-conflict-count'),
+  summaryMode: $('#renamer-summary-mode'), openOutput: $('#renamer-open-output'), newBatch: $('#renamer-new-batch'),
+  pattern: $('#renamer-pattern'), prefix: $('#renamer-prefix'), suffix: $('#renamer-suffix'), find: $('#renamer-find'), replace: $('#renamer-replace'),
+  startNumber: $('#renamer-start-number'), digits: $('#renamer-digits'), caseMode: $('#renamer-case'), caseSensitive: $('#renamer-case-sensitive'),
+  caseSensitiveInput: $('#renamer-case-sensitive-input'), example: $('#renamer-example'), originalWarning: $('#renamer-original-warning'),
+  destinationSetting: $('#renamer-destination-setting'), settingsBar: $('.renamer-settings-bar'), targetLabel: $('#renamer-target-label'), targetDetail: $('#renamer-target-detail')
+};
+
 const updateElements = {
   button: $('#update-button'), buttonLabel: $('#update-button-label'), notice: $('#update-notice'),
   kicker: $('#update-notice-kicker'), title: $('#update-notice-title'), detail: $('#update-notice-detail'),
   progress: $('#update-progress'), progressBar: $('#update-progress-bar'), action: $('#update-action'), dismiss: $('#update-dismiss')
 };
-let updateUiState = { status: 'idle', currentVersion: '2.3.1', availableVersion: '', percent: 0, showNotice: false };
+let updateUiState = { status: 'idle', currentVersion: '2.5.0', availableVersion: '', percent: 0, showNotice: false };
 let dismissedUpdateStatus = '';
 
 function renderUpdateState(state) {
@@ -168,10 +226,14 @@ async function loadThumbnail(image) {
   const sourcePath = image.dataset.path;
   if (!sourcePath) return;
   try {
-    let preview = thumbnailCache.get(sourcePath);
+    const mode = image.dataset.previewMode || 'standard';
+    const cacheKey = `${mode}:${sourcePath}`;
+    let preview = thumbnailCache.get(cacheKey);
     if (!preview) {
-      preview = window.arc.imagePreview(sourcePath, 96, 96);
-      thumbnailCache.set(sourcePath, preview);
+      preview = mode === 'converter'
+        ? window.arc.conversionPreview(sourcePath, 96, 96).then((result) => result.dataUrl)
+        : window.arc.imagePreview(sourcePath, 96, 96);
+      thumbnailCache.set(cacheKey, preview);
     }
     image.src = await preview;
     image.classList.add('loaded');
@@ -203,6 +265,107 @@ function addUniqueItems(state, items) {
   }
 }
 
+let pasteToastTimer = null;
+let pastingClipboard = false;
+
+function showPasteToast(message, type = 'success') {
+  let toast = $('#paste-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'paste-toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    document.body.append(toast);
+  }
+  toast.textContent = message;
+  toast.className = `paste-toast ${type}`;
+  requestAnimationFrame(() => toast.classList.add('visible'));
+  clearTimeout(pasteToastTimer);
+  pasteToastTimer = setTimeout(() => toast.classList.remove('visible'), 3600);
+}
+
+function activeTool() {
+  return $('.tool-tab.active')?.dataset.tool || 'compressor';
+}
+
+function pasteTargetIsEditable(target) {
+  return target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+}
+
+async function addPastedItems(tool, items) {
+  if (tool === 'compressor') {
+    if (compressor.completed) resetCompressor();
+    const before = compressor.items.length;
+    addUniqueItems(compressor, items);
+    renderCompressorQueue();
+    return compressor.items.length - before;
+  }
+  if (tool === 'resizer') {
+    if (resizer.completed) resetResize();
+    const before = resizer.items.length;
+    await addResizeItems(items);
+    return resizer.items.length - before;
+  }
+  if (tool === 'converter') {
+    if (converter.completed) resetConverter();
+    const before = converter.items.length;
+    await addConverterItems(items);
+    return converter.items.length - before;
+  }
+  if (tool === 'renamer') {
+    if (renamer.completed) resetRenamer();
+    const before = renamer.items.length;
+    await addRenamerItems(items);
+    return renamer.items.length - before;
+  }
+  if (metadataCleaner.completed) resetMetadataCleaner();
+  const before = metadataCleaner.items.length;
+  await addMetadataItems(items);
+  return metadataCleaner.items.length - before;
+}
+
+async function handleClipboardPaste(event) {
+  if (pasteTargetIsEditable(event.target) || pastingClipboard) return;
+  event.preventDefault();
+  const tool = activeTool();
+  const states = { compressor, resizer, converter, renamer, metadata: metadataCleaner };
+  const labels = { compressor: 'Compressor', resizer: 'Resizer', converter: 'Conversor', renamer: 'Renomeador', metadata: 'Metadados' };
+  const state = states[tool];
+  if (state.running || (tool === 'metadata' && state.analyzing)) {
+    showPasteToast('Aguarde o processamento atual terminar para colar outra imagem.', 'error');
+    return;
+  }
+
+  pastingClipboard = true;
+  try {
+    const paths = [...(event.clipboardData?.files || [])]
+      .map((file) => window.arc.getPathForFile(file))
+      .filter(Boolean);
+    let items = [];
+    if (paths.length) {
+      if (tool === 'converter') items = await window.arc.addConversionPaths(paths);
+      else if (tool === 'renamer') items = await window.arc.addRenamePaths(paths);
+      else items = await window.arc.addPaths(paths);
+    }
+    if (!items.length) items = await window.arc.pasteClipboardImages();
+    if (!items.length) {
+      showPasteToast('O conteúdo copiado não contém uma imagem compatível.', 'error');
+      return;
+    }
+
+    const added = await addPastedItems(tool, items);
+    if (!added) {
+      showPasteToast('Essa imagem já está no lote atual.', 'error');
+      return;
+    }
+    showPasteToast(`${added === 1 ? 'Imagem adicionada' : `${added} imagens adicionadas`} ao ${labels[tool]} pelo Ctrl + V.`);
+  } catch (error) {
+    showPasteToast(error?.message || 'Não foi possível colar a imagem.', 'error');
+  } finally {
+    pastingClipboard = false;
+  }
+}
+
 function renderCompressorQueue() {
   if (compressor.completed) return;
   const hasItems = compressor.items.length > 0;
@@ -227,11 +390,12 @@ function renderCompressorQueue() {
 
 function fileRow(item, detail, value, status, statusClass, options = {}) {
   const thumbnail = options.thumbnail
-    ? `<span class="file-thumb"><img data-path="${escapeHtml(item.path)}" alt="" loading="lazy"><span class="thumb-fallback">▧</span></span>`
+    ? `<span class="file-thumb"><img data-path="${escapeHtml(item.path)}"${options.previewMode ? ` data-preview-mode="${escapeHtml(options.previewMode)}"` : ''} alt="" loading="lazy"><span class="thumb-fallback">▧</span></span>`
     : '';
   const activeClass = options.active ? ' selected' : '';
+  const extraClass = options.className ? ` ${escapeHtml(options.className)}` : '';
   const itemId = options.selectable ? ` data-item-id="${escapeHtml(item.id)}"` : '';
-  return `<div class="file-row${options.thumbnail ? ' has-thumbnail' : ''}${options.selectable ? ' selectable' : ''}${activeClass}"${itemId}>${thumbnail}<div class="file-info"><div class="file-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div><div class="file-detail" title="${escapeHtml(detail)}">${escapeHtml(detail)}</div></div><div class="file-size">${escapeHtml(value)}</div><div class="file-status ${statusClass}">${escapeHtml(status)}</div></div>`;
+  return `<div class="file-row${options.thumbnail ? ' has-thumbnail' : ''}${options.selectable ? ' selectable' : ''}${extraClass}${activeClass}"${itemId}>${thumbnail}<div class="file-info"><div class="file-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div><div class="file-detail" title="${escapeHtml(detail)}">${escapeHtml(detail)}</div></div><div class="file-size">${escapeHtml(value)}</div><div class="file-status ${statusClass}">${escapeHtml(status)}</div></div>`;
 }
 
 async function chooseCompressorFiles(folder = false) {
@@ -251,7 +415,7 @@ async function startOptimization() {
   try {
     const response = await window.arc.optimize({ items: compressor.items, outputRoot: compressor.outputRoot, level: $('input[name="level"]:checked').value });
     compressor.batchPath = response.batchPath; compressor.completed = true; showCompressorSummary(response.results, response.batchPath);
-  } catch (error) { window.alert(error?.message || 'Não foi possível processar este lote.'); }
+  } catch (error) { setActionState(compressorElements.start, 'error'); window.alert(error?.message || 'Não foi possível processar este lote.'); }
   finally { compressor.running = false; setCompressorBusy(false); }
 }
 
@@ -260,6 +424,7 @@ function setCompressorBusy(busy) {
   compressorElements.start.disabled = busy || !compressor.items.length || compressor.completed;
   compressorElements.progressWrap.classList.toggle('hidden', !busy);
   compressorElements.working.classList.toggle('hidden', !busy);
+  setActionState(compressorElements.start, busy ? 'running' : compressor.completed ? 'success' : compressorElements.start.dataset.state === 'error' ? 'error' : 'idle');
   if (busy) { compressorElements.progressBar.style.width = '0%'; compressorElements.progressText.textContent = `0 de ${compressor.items.length}`; }
   renderCompressorQueue();
 }
@@ -278,7 +443,7 @@ function showCompressorSummary(results, batchPath) {
 
 function resetCompressor() {
   Object.assign(compressor, { items: [], batchPath: '', completed: false }); compressor.results.clear();
-  compressorElements.progressWrap.classList.add('hidden'); compressorElements.working.classList.add('hidden'); renderCompressorQueue();
+  compressorElements.progressWrap.classList.add('hidden'); compressorElements.working.classList.add('hidden'); setActionState(compressorElements.start, 'idle'); renderCompressorQueue();
 }
 
 async function addResizeItems(items) {
@@ -470,7 +635,7 @@ async function startResize() {
   try {
     const response = await window.arc.resize({ items: resizer.items, outputRoot: resizer.outputRoot, options: resizeOptions() });
     resizer.batchPath = response.batchPath; resizer.completed = true; showResizeSummary(response.results, response.batchPath);
-  } catch (error) { window.alert(error?.message || 'Não foi possível redimensionar este lote.'); }
+  } catch (error) { setActionState(resizeElements.start, 'error'); window.alert(error?.message || 'Não foi possível redimensionar este lote.'); }
   finally { resizer.running = false; setResizeBusy(false); }
 }
 
@@ -478,6 +643,7 @@ function setResizeBusy(busy) {
   for (const element of [resizeElements.selectFiles, resizeElements.selectFolder, resizeElements.addMore, resizeElements.selectOutput, resizeElements.clear]) element.disabled = busy;
   resizeElements.start.disabled = busy || !resizer.items.length || resizer.completed;
   resizeElements.progressWrap.classList.toggle('hidden', !busy); resizeElements.working.classList.toggle('hidden', !busy);
+  setActionState(resizeElements.start, busy ? 'running' : resizer.completed ? 'success' : resizeElements.start.dataset.state === 'error' ? 'error' : 'idle');
   if (busy) { resizeElements.progressBar.style.width = '0%'; resizeElements.progressText.textContent = `0 de ${resizer.items.length}`; }
   renderResizeQueue();
 }
@@ -496,7 +662,307 @@ function resetResize() {
   Object.assign(resizer, { items: [], batchPath: '', completed: false, selectedItemId: '' }); resizer.results.clear();
   resizeElements.previewImage.removeAttribute('src'); resizeElements.previewImage.classList.add('hidden'); resizeElements.previewPlaceholder.classList.remove('hidden');
   resizeElements.previewName.textContent = 'Imagem selecionada'; resizeElements.previewMeta.textContent = 'Clique em um arquivo para visualizar'; resizeElements.previewBadge.textContent = 'RESULTADO'; resizeElements.previewRefresh.disabled = false;
-  resizeElements.progressWrap.classList.add('hidden'); resizeElements.working.classList.add('hidden'); renderResizeQueue();
+  resizeElements.progressWrap.classList.add('hidden'); resizeElements.working.classList.add('hidden'); setActionState(resizeElements.start, 'idle'); renderResizeQueue();
+}
+
+const converterFormatLabels = { jpeg: 'JPG', png: 'PNG', webp: 'WebP', avif: 'AVIF' };
+const converterFormatHints = {
+  jpeg: 'JPG é a opção mais compatível para fotografias e não possui transparência.',
+  png: 'PNG preserva pixels e transparência sem perda, mas costuma gerar arquivos maiores.',
+  webp: 'WebP oferece arquivos pequenos, transparência e ótima qualidade.',
+  avif: 'AVIF prioriza a menor saída possível, com processamento um pouco mais demorado.'
+};
+
+function converterOptions() {
+  return {
+    format: converter.format,
+    quality: converter.quality,
+    lossless: converter.lossless,
+    background: converter.background,
+    preserveColorProfile: converter.preserveColorProfile,
+    keepMetadata: converter.keepMetadata
+  };
+}
+
+function updateConverterControls() {
+  const label = converterFormatLabels[converter.format];
+  const supportsLossless = ['webp', 'avif'].includes(converter.format);
+  const qualityDisabled = converter.format === 'png' || converter.lossless;
+  converterElements.formatHint.textContent = converterFormatHints[converter.format];
+  converterElements.qualityControl.classList.toggle('disabled', qualityDisabled);
+  converterElements.qualityRange.disabled = converter.running || qualityDisabled;
+  converterElements.qualityLabel.textContent = converter.format === 'png' || converter.lossless ? 'Sem perda' : `${converter.quality}%`;
+  converterElements.qualityDetail.textContent = qualityDisabled ? 'Os pixels serão preservados sem compressão com perda' : 'Alta qualidade com boa redução de tamanho';
+  converterElements.backgroundControl.classList.toggle('hidden', converter.format !== 'jpeg');
+  converterElements.lossless.classList.toggle('disabled', !supportsLossless);
+  converterElements.losslessInput.disabled = converter.running || !supportsLossless;
+  converterElements.losslessInput.checked = supportsLossless && converter.lossless;
+  converterElements.previewBadge.textContent = `→ ${label.toUpperCase()}`;
+  converterElements.targetLabel.textContent = qualityDisabled ? `${label} · sem perda` : `${label} · qualidade ${converter.quality}%`;
+  converterElements.targetDetail.textContent = `${converter.preserveColorProfile ? 'perfil de cores preservado' : 'perfil de cores removido'} · ${converter.keepMetadata ? 'metadados copiados' : 'metadados removidos'}`;
+  const previewStage = converterElements.previewImage.parentElement;
+  previewStage.style.background = converter.format === 'jpeg'
+    ? converter.background
+    : 'repeating-conic-gradient(#0c1428 0 25%, #091020 0 50%) 50% / 20px 20px';
+  $$('.converter-format-card').forEach((card) => card.classList.toggle('active', card.dataset.converterFormat === converter.format));
+}
+
+async function loadConverterPreview(item) {
+  if (!item) return;
+  const requestId = item.id;
+  converterElements.previewName.textContent = item.name;
+  converterElements.previewMeta.textContent = 'Gerando preview…';
+  converterElements.previewPlaceholder.classList.remove('hidden');
+  converterElements.previewImage.classList.add('hidden');
+  try {
+    let preview = converter.previews.get(item.id);
+    if (!preview) {
+      preview = await window.arc.conversionPreview(item.path, 760, 560);
+      converter.previews.set(item.id, preview);
+    }
+    if (converter.selectedItemId !== requestId) return;
+    converterElements.previewImage.src = preview.dataUrl;
+    converterElements.previewImage.classList.remove('hidden');
+    converterElements.previewPlaceholder.classList.add('hidden');
+    const alpha = preview.hasAlpha ? ' · transparência' : '';
+    converterElements.previewMeta.textContent = `${String(preview.format).toUpperCase()} · ${preview.width} × ${preview.height} px${alpha}`;
+  } catch (error) {
+    if (converter.selectedItemId !== requestId) return;
+    converterElements.previewPlaceholder.querySelector('span').textContent = error?.message || 'Preview indisponível';
+    converterElements.previewMeta.textContent = 'Não foi possível visualizar este arquivo';
+  }
+}
+
+function renderConverterQueue() {
+  if (converter.completed) return;
+  const hasItems = converter.items.length > 0;
+  converterElements.dropZone.classList.toggle('hidden', hasItems);
+  converterElements.queue.classList.toggle('hidden', !hasItems);
+  converterElements.summary.classList.add('hidden');
+  converterElements.start.disabled = !hasItems || converter.running;
+  converterElements.clear.disabled = converter.running;
+  converterElements.addMore.disabled = converter.running;
+  converterElements.queueTitle.textContent = `${converter.items.length.toLocaleString('pt-BR')} ${converter.items.length === 1 ? 'imagem selecionada' : 'imagens selecionadas'}`;
+  converterElements.queueSubtitle.textContent = `${formatBytes(converter.items.reduce((sum, item) => sum + item.size, 0))} de entrada · saída em ${converterFormatLabels[converter.format]}`;
+  converterElements.fileList.innerHTML = converter.items.map((item) => {
+    const result = converter.results.get(item.id);
+    let status = 'Na fila', statusClass = '', value = `→ ${converterFormatLabels[converter.format]}`, detail = item.path;
+    if (result?.working) { status = 'Convertendo'; statusClass = 'working'; }
+    else if (result?.ok) { status = 'Convertida'; statusClass = 'success'; value = `${formatBytes(result.originalBytes)} → ${formatBytes(result.outputBytes)}`; detail = `${result.inputFormat} convertido para ${result.outputFormat}`; }
+    else if (result?.error) { status = 'Falhou'; statusClass = 'error'; detail = result.error; }
+    return fileRow(item, detail, value, status, statusClass, {
+      thumbnail: true, previewMode: 'converter', selectable: true, active: item.id === converter.selectedItemId, className: 'converter-row'
+    });
+  }).join('');
+  observeThumbnails(converterElements.fileList);
+  converterElements.fileList.querySelectorAll('[data-item-id]').forEach((row) => row.addEventListener('click', () => {
+    converter.selectedItemId = row.dataset.itemId;
+    renderConverterQueue();
+    loadConverterPreview(converter.items.find((item) => item.id === converter.selectedItemId));
+  }));
+  updateConverterControls();
+}
+
+async function addConverterItems(items) {
+  addUniqueItems(converter, items);
+  if (!converter.selectedItemId && converter.items[0]) converter.selectedItemId = converter.items[0].id;
+  renderConverterQueue();
+  await loadConverterPreview(converter.items.find((item) => item.id === converter.selectedItemId));
+}
+
+async function chooseConverterFiles(folder = false) {
+  await addConverterItems(folder ? await window.arc.selectConversionFolder() : await window.arc.selectConversionFiles());
+}
+
+async function startConversion() {
+  if (converter.running || !converter.items.length) return;
+  converter.running = true; converter.results.clear(); setConverterBusy(true);
+  try {
+    const response = await window.arc.convert({ items: converter.items, outputRoot: converter.outputRoot, options: converterOptions() });
+    converter.batchPath = response.batchPath; converter.completed = true; showConverterSummary(response.results, response.batchPath);
+  } catch (error) { setActionState(converterElements.start, 'error'); window.alert(error?.message || 'Não foi possível converter este lote.'); }
+  finally { converter.running = false; setConverterBusy(false); }
+}
+
+function setConverterBusy(busy) {
+  for (const element of [converterElements.selectFiles, converterElements.selectFolder, converterElements.addMore, converterElements.selectOutput, converterElements.clear, converterElements.qualityRange, converterElements.background, converterElements.losslessInput, converterElements.colorProfileInput, converterElements.metadataInput]) element.disabled = busy;
+  $$('.converter-format-card').forEach((element) => { element.disabled = busy; });
+  converterElements.start.disabled = busy || !converter.items.length || converter.completed;
+  converterElements.progressWrap.classList.toggle('hidden', !busy); converterElements.working.classList.toggle('hidden', !busy);
+  setActionState(converterElements.start, busy ? 'running' : converter.completed ? 'success' : converterElements.start.dataset.state === 'error' ? 'error' : 'idle');
+  if (busy) { converterElements.progressBar.style.width = '0%'; converterElements.progressText.textContent = `0 de ${converter.items.length}`; }
+  renderConverterQueue();
+}
+
+function showConverterSummary(results, batchPath) {
+  const successful = results.filter((result) => result.ok), failed = results.length - successful.length;
+  converterElements.queue.classList.add('hidden'); converterElements.dropZone.classList.add('hidden'); converterElements.summary.classList.remove('hidden'); converterElements.working.classList.add('hidden');
+  converterElements.processedCount.textContent = successful.length.toLocaleString('pt-BR');
+  converterElements.summaryFormat.textContent = converterFormatLabels[converter.format].toUpperCase();
+  converterElements.outputSize.textContent = formatBytes(successful.reduce((sum, result) => sum + result.outputBytes, 0));
+  converterElements.summaryText.textContent = failed ? `${successful.length} imagens convertidas e ${failed} não puderam ser processadas.` : 'Tudo pronto. Os arquivos convertidos foram salvos sem alterar os originais.';
+  converterElements.summaryPath.textContent = batchPath; converterElements.summaryPath.title = batchPath;
+}
+
+function resetConverter() {
+  Object.assign(converter, { items: [], batchPath: '', completed: false, selectedItemId: '' });
+  converter.results.clear(); converter.previews.clear();
+  converterElements.previewImage.removeAttribute('src'); converterElements.previewImage.classList.add('hidden'); converterElements.previewPlaceholder.classList.remove('hidden');
+  converterElements.previewPlaceholder.querySelector('span').textContent = 'Preparando preview…'; converterElements.previewName.textContent = 'Imagem selecionada'; converterElements.previewMeta.textContent = 'Clique em um arquivo para visualizar';
+  converterElements.progressWrap.classList.add('hidden'); converterElements.working.classList.add('hidden'); setActionState(converterElements.start, 'idle'); renderConverterQueue();
+}
+
+function renameOptions() {
+  return {
+    pattern: renamer.pattern,
+    prefix: renamer.prefix,
+    suffix: renamer.suffix,
+    find: renamer.find,
+    replace: renamer.replace,
+    caseSensitive: renamer.caseSensitive,
+    caseMode: renamer.caseMode,
+    startNumber: renamer.startNumber,
+    digits: renamer.digits,
+    outputMode: renamer.outputMode
+  };
+}
+
+function updateRenamerControls() {
+  const originalMode = renamer.outputMode === 'original';
+  $$('.renamer-mode-card').forEach((card) => card.classList.toggle('active', card.dataset.renameMode === renamer.outputMode));
+  renamerElements.originalWarning.classList.toggle('hidden', !originalMode);
+  renamerElements.settingsBar.classList.toggle('original-mode', originalMode);
+  renamerElements.selectOutput.disabled = renamer.running || originalMode;
+  renamerElements.outputPath.disabled = originalMode;
+  renamerElements.caseSensitive.classList.toggle('active', renamer.caseSensitive);
+  renamerElements.targetLabel.textContent = originalMode ? 'Arquivos originais' : 'Cópias em nova pasta';
+  const example = renamer.plan[0]?.newName || renamerElements.example.textContent;
+  renamerElements.targetDetail.textContent = originalMode ? `nome atual → ${example}` : `original → ${example}`;
+  renamerElements.start.querySelector('span').textContent = originalMode ? 'Renomear originais' : 'Criar cópias renomeadas';
+}
+
+function renderRenamerQueue() {
+  if (renamer.completed) return;
+  const hasItems = renamer.items.length > 0;
+  const planById = new Map(renamer.plan.map((item) => [item.id, item]));
+  const conflicts = renamer.plan.filter((item) => item.conflictAdjusted).length;
+  renamerElements.dropZone.classList.toggle('hidden', hasItems);
+  renamerElements.queue.classList.toggle('hidden', !hasItems);
+  renamerElements.summary.classList.add('hidden');
+  renamerElements.start.disabled = !hasItems || renamer.running || renamer.plan.length !== renamer.items.length;
+  renamerElements.clear.disabled = renamer.running;
+  renamerElements.addMore.disabled = renamer.running;
+  renamerElements.queueTitle.textContent = `${renamer.items.length.toLocaleString('pt-BR')} ${renamer.items.length === 1 ? 'imagem selecionada' : 'imagens selecionadas'}`;
+  renamerElements.queueSubtitle.textContent = conflicts
+    ? `${conflicts} ${conflicts === 1 ? 'conflito ajustado automaticamente' : 'conflitos ajustados automaticamente'} · extensões preservadas`
+    : 'Preview atualizado · extensões preservadas';
+  renamerElements.fileList.innerHTML = renamer.items.map((item) => {
+    const plan = planById.get(item.id);
+    const result = renamer.results.get(item.id);
+    let status = plan ? (plan.changed ? 'Pronto' : 'Sem alteração') : 'Calculando';
+    let statusClass = plan?.conflictAdjusted ? 'working' : '';
+    if (result?.working) { status = 'Renomeando'; statusClass = 'working'; }
+    else if (result?.ok) { status = result.changed ? 'Renomeado' : 'Mantido'; statusClass = 'success'; }
+    else if (result?.error) { status = 'Falhou'; statusClass = 'error'; }
+    const newName = result?.newName || plan?.newName || 'Calculando…';
+    const conflictDetail = plan?.conflictAdjusted ? 'Conflito detectado e resolvido no preview' : item.path;
+    return `<div class="file-row has-thumbnail renamer-row"><span class="file-thumb"><img data-path="${escapeHtml(item.path)}" data-preview-mode="converter" alt="" loading="lazy"><span class="thumb-fallback">▧</span></span><div class="file-info"><div class="file-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div><div class="file-detail" title="${escapeHtml(conflictDetail)}">${escapeHtml(conflictDetail)}</div></div><div class="rename-result" title="${escapeHtml(newName)}"><span>${escapeHtml(newName)}</span></div><div class="file-status ${statusClass}">${escapeHtml(status)}</div></div>`;
+  }).join('');
+  observeThumbnails(renamerElements.fileList);
+  updateRenamerControls();
+}
+
+async function refreshRenamePreview() {
+  const request = ++renamer.previewRequest;
+  const previewItems = renamer.items.length
+    ? renamer.items
+    : [{ id: '__example__', path: 'minha-foto.jpg', name: 'minha-foto.jpg', size: 0 }];
+  try {
+    const plan = await window.arc.renamePreview(previewItems, renameOptions());
+    if (request !== renamer.previewRequest) return;
+    if (renamer.items.length) renamer.plan = plan;
+    else renamer.plan = [];
+    if (plan[0]) renamerElements.example.textContent = plan[0].newName;
+    renderRenamerQueue();
+    updateRenamerControls();
+  } catch (error) {
+    if (request !== renamer.previewRequest) return;
+    renamer.plan = [];
+    renamerElements.example.textContent = error?.message || 'Padrão inválido';
+    renderRenamerQueue();
+  }
+}
+
+function scheduleRenamePreview(delay = 120) {
+  clearTimeout(renamePreviewTimer);
+  renamer.plan = [];
+  renderRenamerQueue();
+  renamePreviewTimer = setTimeout(() => refreshRenamePreview(), delay);
+}
+
+async function addRenamerItems(items) {
+  addUniqueItems(renamer, items);
+  scheduleRenamePreview(0);
+}
+
+async function chooseRenamerFiles(folder = false) {
+  await addRenamerItems(folder ? await window.arc.selectRenameFolder() : await window.arc.selectRenameFiles());
+}
+
+function setRenamerBusy(busy) {
+  const controls = [renamerElements.selectFiles, renamerElements.selectFolder, renamerElements.addMore, renamerElements.clear,
+    renamerElements.pattern, renamerElements.prefix, renamerElements.suffix, renamerElements.find, renamerElements.replace,
+    renamerElements.startNumber, renamerElements.digits, renamerElements.caseMode, renamerElements.caseSensitiveInput];
+  for (const element of controls) element.disabled = busy;
+  renamerElements.selectOutput.disabled = busy || renamer.outputMode === 'original';
+  $$('.renamer-mode-card, [data-rename-token]').forEach((element) => { element.disabled = busy; });
+  renamerElements.start.disabled = busy || !renamer.items.length || renamer.completed || renamer.plan.length !== renamer.items.length;
+  renamerElements.progressWrap.classList.toggle('hidden', !busy);
+  renamerElements.working.classList.toggle('hidden', !busy);
+  setActionState(renamerElements.start, busy ? 'running' : renamer.completed ? 'success' : renamerElements.start.dataset.state === 'error' ? 'error' : 'idle');
+  if (busy) { renamerElements.progressBar.style.width = '0%'; renamerElements.progressText.textContent = `0 de ${renamer.items.length}`; }
+  renderRenamerQueue();
+}
+
+async function startRenaming() {
+  if (renamer.running || !renamer.items.length || renamer.plan.length !== renamer.items.length) return;
+  if (renamer.outputMode === 'original' && !window.confirm('Renomear os arquivos originais nos locais atuais? O ARC protegerá contra conflitos, mas os nomes atuais serão substituídos.')) return;
+  renamer.running = true; renamer.results.clear(); setRenamerBusy(true);
+  try {
+    const response = await window.arc.renameImages({ items: renamer.items, outputRoot: renamer.outputRoot, options: renameOptions() });
+    renamer.batchPath = response.batchPath; renamer.completed = true; showRenamerSummary(response);
+  } catch (error) {
+    setActionState(renamerElements.start, 'error');
+    window.alert(error?.message || 'Não foi possível renomear este lote.');
+  } finally {
+    renamer.running = false; setRenamerBusy(false);
+  }
+}
+
+function showRenamerSummary(response) {
+  const successful = response.results.filter((result) => result.ok);
+  const conflicts = successful.filter((result) => result.conflictAdjusted).length;
+  const originalMode = response.outputMode === 'original';
+  renamerElements.queue.classList.add('hidden'); renamerElements.dropZone.classList.add('hidden'); renamerElements.summary.classList.remove('hidden'); renamerElements.working.classList.add('hidden');
+  renamerElements.processedCount.textContent = successful.length.toLocaleString('pt-BR');
+  renamerElements.conflictCount.textContent = conflicts.toLocaleString('pt-BR');
+  renamerElements.summaryMode.textContent = originalMode ? 'ORIGINAIS' : 'CÓPIAS';
+  renamerElements.summaryText.textContent = originalMode
+    ? 'Os nomes foram atualizados nos locais de origem. O conteúdo das imagens permaneceu intacto.'
+    : 'As cópias renomeadas foram salvas em uma pasta exclusiva. Os originais não foram alterados.';
+  renamerElements.summaryLocationLabel.textContent = originalMode ? 'LOCAL DOS ARQUIVOS' : 'ARQUIVOS SALVOS EM';
+  renamerElements.summaryPath.textContent = originalMode ? 'Locais de origem preservados' : response.batchPath;
+  renamerElements.summaryPath.title = originalMode ? '' : response.batchPath;
+  renamerElements.openOutput.classList.toggle('hidden', originalMode);
+}
+
+function resetRenamer() {
+  clearTimeout(renamePreviewTimer);
+  Object.assign(renamer, { items: [], batchPath: '', completed: false, plan: [] });
+  renamer.results.clear();
+  renamerElements.openOutput.classList.remove('hidden');
+  renamerElements.progressWrap.classList.add('hidden'); renamerElements.working.classList.add('hidden'); setActionState(renamerElements.start, 'idle');
+  renderRenamerQueue(); refreshRenamePreview();
 }
 
 function removableMetadataTypes(analysis) {
@@ -675,6 +1141,7 @@ async function startMetadataCleaning() {
     metadataCleaner.completed = true;
     showMetadataSummary(response.results, response.batchPath);
   } catch (error) {
+    setActionState(metadataElements.start, 'error');
     window.alert(error?.message || 'Não foi possível limpar os metadados deste lote.');
   } finally {
     metadataCleaner.running = false;
@@ -687,6 +1154,7 @@ function setMetadataBusy(busy) {
   metadataElements.start.disabled = busy || !metadataCleaner.items.length || metadataCleaner.completed;
   metadataElements.progressWrap.classList.toggle('hidden', !busy);
   metadataElements.working.classList.toggle('hidden', !busy);
+  setActionState(metadataElements.start, busy ? 'running' : metadataCleaner.completed ? 'success' : metadataElements.start.dataset.state === 'error' ? 'error' : 'idle');
   if (busy) { metadataElements.progressBar.style.width = '0%'; metadataElements.progressText.textContent = `0 de ${metadataCleaner.items.length}`; }
   renderMetadataQueue();
 }
@@ -711,29 +1179,54 @@ function resetMetadataCleaner() {
   Object.assign(metadataCleaner, { items: [], batchPath: '', completed: false, analyzing: false, selectedItemId: '', groupFilter: 'all', search: '' });
   metadataCleaner.results.clear(); metadataCleaner.analysis.clear();
   metadataElements.searchInput.value = '';
-  metadataElements.progressWrap.classList.add('hidden'); metadataElements.working.classList.add('hidden');
+  metadataElements.progressWrap.classList.add('hidden'); metadataElements.working.classList.add('hidden'); setActionState(metadataElements.start, 'idle');
   renderMetadataQueue();
 }
 
-function wireDropZone(element, addCallback) {
+function wireDropZone(element, addCallback, pathLoader = (paths) => window.arc.addPaths(paths)) {
+  element.tabIndex = 0;
+  element.setAttribute('role', 'group');
+  element.setAttribute('aria-label', `${element.querySelector('h2')?.textContent || 'Adicionar imagens'}. Use Enter ou Espaço para escolher arquivos.`);
   for (const eventName of ['dragenter', 'dragover']) element.addEventListener(eventName, (event) => { event.preventDefault(); element.classList.add('dragging'); });
   for (const eventName of ['dragleave', 'drop']) element.addEventListener(eventName, (event) => { event.preventDefault(); element.classList.remove('dragging'); });
+  element.addEventListener('click', (event) => {
+    if (!event.target.closest('button')) element.querySelector('.button.primary')?.click();
+  });
+  element.addEventListener('keydown', (event) => {
+    if (event.target !== element || !['Enter', ' '].includes(event.key)) return;
+    event.preventDefault();
+    element.querySelector('.button.primary')?.click();
+  });
   element.addEventListener('drop', async (event) => {
     const paths = [...event.dataTransfer.files].map((file) => window.arc.getPathForFile(file)).filter(Boolean);
-    if (paths.length) addCallback(await window.arc.addPaths(paths));
+    if (paths.length) addCallback(await pathLoader(paths));
   });
 }
 
-$$('.tool-tab').forEach((button) => button.addEventListener('click', () => {
+document.addEventListener('paste', handleClipboardPaste);
+
+const toolTabs = $$('.tool-tab');
+toolTabs.forEach((button, index) => {
+  button.tabIndex = button.classList.contains('active') ? 0 : -1;
+  button.addEventListener('keydown', (event) => {
+    const keyMoves = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+    if (!(event.key in keyMoves) && !['Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? toolTabs.length - 1 : (index + keyMoves[event.key] + toolTabs.length) % toolTabs.length;
+    toolTabs[nextIndex].click();
+    toolTabs[nextIndex].focus();
+  });
+  button.addEventListener('click', () => {
   const tool = button.dataset.tool;
-  $$('.tool-tab').forEach((tab) => { const active = tab === button; tab.classList.toggle('active', active); tab.setAttribute('aria-pressed', String(active)); });
-  $('#compressor-view').classList.toggle('hidden', tool !== 'compressor'); $('#resizer-view').classList.toggle('hidden', tool !== 'resizer'); $('#metadata-view').classList.toggle('hidden', tool !== 'metadata');
-  const toolNames = { compressor: 'Image Compressor', resizer: 'Image Resizer', metadata: 'Metadata Editor' };
+  toolTabs.forEach((tab) => { const active = tab === button; tab.classList.toggle('active', active); tab.setAttribute('aria-pressed', String(active)); tab.tabIndex = active ? 0 : -1; });
+  $('#compressor-view').classList.toggle('hidden', tool !== 'compressor'); $('#resizer-view').classList.toggle('hidden', tool !== 'resizer'); $('#converter-view').classList.toggle('hidden', tool !== 'converter'); $('#renamer-view').classList.toggle('hidden', tool !== 'renamer'); $('#metadata-view').classList.toggle('hidden', tool !== 'metadata');
+  const toolNames = { compressor: 'Image Compressor', resizer: 'Image Resizer', converter: 'Image Converter', renamer: 'Batch Renamer', metadata: 'Metadata Editor' };
   const brandName = $('#brand-name');
   brandName.textContent = toolNames[tool];
   brandName.classList.remove('swap'); void brandName.offsetWidth; brandName.classList.add('swap');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}));
+  window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  });
+});
 
 compressorElements.selectFiles.addEventListener('click', () => chooseCompressorFiles(false)); compressorElements.addMore.addEventListener('click', () => chooseCompressorFiles(false)); compressorElements.selectFolder.addEventListener('click', () => chooseCompressorFiles(true));
 compressorElements.selectOutput.addEventListener('click', () => chooseOutput(compressor, compressorElements.outputPath)); compressorElements.start.addEventListener('click', startOptimization); compressorElements.clear.addEventListener('click', resetCompressor); compressorElements.newBatch.addEventListener('click', resetCompressor); compressorElements.openOutput.addEventListener('click', () => window.arc.showOutput(compressor.batchPath || compressor.outputRoot));
@@ -743,6 +1236,46 @@ resizeElements.selectFiles.addEventListener('click', () => chooseResizeFiles(fal
 resizeElements.selectOutput.addEventListener('click', () => chooseOutput(resizer, resizeElements.outputPath)); resizeElements.start.addEventListener('click', startResize); resizeElements.clear.addEventListener('click', resetResize); resizeElements.newBatch.addEventListener('click', resetResize); resizeElements.openOutput.addEventListener('click', () => window.arc.showOutput(resizer.batchPath || resizer.outputRoot));
 resizeElements.previewRefresh.addEventListener('click', () => refreshResizePreview());
 wireDropZone(resizeElements.dropZone, addResizeItems);
+
+converterElements.selectFiles.addEventListener('click', () => chooseConverterFiles(false)); converterElements.addMore.addEventListener('click', () => chooseConverterFiles(false)); converterElements.selectFolder.addEventListener('click', () => chooseConverterFiles(true));
+converterElements.selectOutput.addEventListener('click', () => chooseOutput(converter, converterElements.outputPath)); converterElements.start.addEventListener('click', startConversion); converterElements.clear.addEventListener('click', resetConverter); converterElements.newBatch.addEventListener('click', resetConverter); converterElements.openOutput.addEventListener('click', () => window.arc.showOutput(converter.batchPath || converter.outputRoot));
+wireDropZone(converterElements.dropZone, addConverterItems, (paths) => window.arc.addConversionPaths(paths));
+$$('.converter-format-card').forEach((button) => button.addEventListener('click', () => {
+  converter.format = button.dataset.converterFormat;
+  if (!['webp', 'avif'].includes(converter.format)) converter.lossless = false;
+  updateConverterControls(); renderConverterQueue();
+}));
+converterElements.qualityRange.addEventListener('input', () => { converter.quality = Number(converterElements.qualityRange.value); updateConverterControls(); });
+converterElements.background.addEventListener('input', () => { converter.background = converterElements.background.value; converterElements.backgroundValue.textContent = converter.background.toUpperCase(); updateConverterControls(); });
+converterElements.losslessInput.addEventListener('change', () => { converter.lossless = converterElements.losslessInput.checked; updateConverterControls(); });
+converterElements.colorProfileInput.addEventListener('change', () => { converter.preserveColorProfile = converterElements.colorProfileInput.checked; updateConverterControls(); });
+converterElements.metadataInput.addEventListener('change', () => { converter.keepMetadata = converterElements.metadataInput.checked; updateConverterControls(); });
+
+renamerElements.selectFiles.addEventListener('click', () => chooseRenamerFiles(false)); renamerElements.addMore.addEventListener('click', () => chooseRenamerFiles(false)); renamerElements.selectFolder.addEventListener('click', () => chooseRenamerFiles(true));
+renamerElements.selectOutput.addEventListener('click', () => chooseOutput(renamer, renamerElements.outputPath)); renamerElements.start.addEventListener('click', startRenaming); renamerElements.clear.addEventListener('click', resetRenamer); renamerElements.newBatch.addEventListener('click', resetRenamer); renamerElements.openOutput.addEventListener('click', () => window.arc.showOutput(renamer.batchPath || renamer.outputRoot));
+wireDropZone(renamerElements.dropZone, addRenamerItems, (paths) => window.arc.addRenamePaths(paths));
+const renameTextBindings = [
+  [renamerElements.pattern, 'pattern'], [renamerElements.prefix, 'prefix'], [renamerElements.suffix, 'suffix'],
+  [renamerElements.find, 'find'], [renamerElements.replace, 'replace']
+];
+renameTextBindings.forEach(([element, property]) => element.addEventListener('input', () => { renamer[property] = element.value; scheduleRenamePreview(); }));
+renamerElements.startNumber.addEventListener('input', () => { renamer.startNumber = Number(renamerElements.startNumber.value) || 0; scheduleRenamePreview(); });
+renamerElements.digits.addEventListener('change', () => { renamer.digits = Number(renamerElements.digits.value); scheduleRenamePreview(0); });
+renamerElements.caseMode.addEventListener('change', () => { renamer.caseMode = renamerElements.caseMode.value; scheduleRenamePreview(0); });
+renamerElements.caseSensitiveInput.addEventListener('change', () => { renamer.caseSensitive = renamerElements.caseSensitiveInput.checked; updateRenamerControls(); scheduleRenamePreview(0); });
+$$('[data-rename-token]').forEach((button) => button.addEventListener('click', () => {
+  const input = renamerElements.pattern;
+  const start = input.selectionStart ?? input.value.length;
+  const end = input.selectionEnd ?? start;
+  input.value = `${input.value.slice(0, start)}${button.dataset.renameToken}${input.value.slice(end)}`;
+  renamer.pattern = input.value;
+  input.focus(); input.setSelectionRange(start + button.dataset.renameToken.length, start + button.dataset.renameToken.length);
+  scheduleRenamePreview(0);
+}));
+$$('.renamer-mode-card').forEach((button) => button.addEventListener('click', () => {
+  renamer.outputMode = button.dataset.renameMode;
+  updateRenamerControls(); scheduleRenamePreview(0);
+}));
 
 metadataElements.selectFiles.addEventListener('click', () => chooseMetadataFiles(false)); metadataElements.addMore.addEventListener('click', () => chooseMetadataFiles(false)); metadataElements.selectFolder.addEventListener('click', () => chooseMetadataFiles(true));
 metadataElements.selectOutput.addEventListener('click', () => chooseOutput(metadataCleaner, metadataElements.outputPath)); metadataElements.start.addEventListener('click', startMetadataCleaning); metadataElements.clear.addEventListener('click', resetMetadataCleaner); metadataElements.newBatch.addEventListener('click', resetMetadataCleaner); metadataElements.openOutput.addEventListener('click', () => window.arc.showOutput(metadataCleaner.batchPath || metadataCleaner.outputRoot));
@@ -771,7 +1304,16 @@ window.arc.onResizeProgress((progress) => { resizer.results.set(progress.id, pro
 window.arc.onResizeStarted(({ id }) => { if (!resizer.completed) { resizer.results.set(id, { working: true }); renderResizeQueue(); } });
 window.arc.onMetadataProgress((progress) => { metadataCleaner.results.set(progress.id, progress); const done = progress.index + 1; metadataElements.progressBar.style.width = `${done / progress.total * 100}%`; metadataElements.progressText.textContent = `${done} de ${progress.total}`; if (!metadataCleaner.completed) renderMetadataQueue(); });
 window.arc.onMetadataStarted(({ id }) => { if (!metadataCleaner.completed) { metadataCleaner.results.set(id, { working: true }); renderMetadataQueue(); } });
+window.arc.onConversionProgress((progress) => { converter.results.set(progress.id, progress); const done = progress.index + 1; converterElements.progressBar.style.width = `${done / progress.total * 100}%`; converterElements.progressText.textContent = `${done} de ${progress.total}`; if (!converter.completed) renderConverterQueue(); });
+window.arc.onConversionStarted(({ id }) => { if (!converter.completed) { converter.results.set(id, { working: true }); renderConverterQueue(); } });
+window.arc.onRenameProgress((progress) => { renamer.results.set(progress.id, progress); const done = progress.index + 1; renamerElements.progressBar.style.width = `${done / progress.total * 100}%`; renamerElements.progressText.textContent = `${done} de ${progress.total}`; if (!renamer.completed) renderRenamerQueue(); });
+window.arc.onRenameStarted(({ id }) => { if (!renamer.completed) { renamer.results.set(id, { working: true }); renderRenamerQueue(); } });
 window.arc.onUpdateState(renderUpdateState);
+
+[compressorElements.start, resizeElements.start, converterElements.start, renamerElements.start, metadataElements.start]
+  .forEach((button) => setActionState(button, 'idle'));
+$$('.progress-wrap').forEach((element) => { element.setAttribute('role', 'status'); element.setAttribute('aria-live', 'polite'); });
+$$('.summary').forEach((element) => { element.setAttribute('role', 'status'); element.setAttribute('aria-live', 'polite'); });
 
 updateElements.button.addEventListener('click', () => {
   if (updateUiState.status === 'available') window.arc.installUpdate();
@@ -786,7 +1328,8 @@ updateElements.dismiss.addEventListener('click', () => {
   updateElements.notice.classList.add('hidden');
 });
 
-window.arc.defaultOutput().then((outputPath) => { compressor.outputRoot = outputPath; resizer.outputRoot = outputPath; metadataCleaner.outputRoot = outputPath; compressorElements.outputPath.value = outputPath; resizeElements.outputPath.value = outputPath; metadataElements.outputPath.value = outputPath; });
+window.arc.defaultOutput().then((outputPath) => { compressor.outputRoot = outputPath; resizer.outputRoot = outputPath; converter.outputRoot = outputPath; renamer.outputRoot = outputPath; metadataCleaner.outputRoot = outputPath; compressorElements.outputPath.value = outputPath; resizeElements.outputPath.value = outputPath; converterElements.outputPath.value = outputPath; renamerElements.outputPath.value = outputPath; metadataElements.outputPath.value = outputPath; });
 window.arc.getUpdateState().then(renderUpdateState);
 metadataElements.colorProfile.classList.add('active');
-renderPresets(); updateResizeTarget();
+converterElements.colorProfile.classList.add('active');
+renderPresets(); updateResizeTarget(); updateConverterControls(); updateRenamerControls(); refreshRenamePreview();
